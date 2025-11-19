@@ -5,6 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Send } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
+import LanguageSelector from "@/components/LanguageSelector";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface Message {
   role: "user" | "assistant";
@@ -13,7 +15,9 @@ interface Message {
 
 const Chat = () => {
   const location = useLocation();
-  const aiPipeline = location.state?.pipeline;
+  const locationPipeline = location.state?.pipeline;
+  const { aiPipeline: contextPipeline } = useLanguage();
+  const aiPipeline = locationPipeline || contextPipeline;
   const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -51,29 +55,29 @@ Answer:`;
           temperature: 0.7,
           do_sample: true,
         });
-        
+
         return (result as any)[0].generated_text || "I'm having trouble understanding. Can you rephrase that?";
       } catch (error) {
         console.error("AI generation error:", error);
         // Fall through to rule-based responses
       }
     }
-    
+
     // Fallback: Rule-based responses
     const lowerMessage = userMessage.toLowerCase();
-    
+
     if (lowerMessage.includes("add") || lowerMessage.includes("plus") || lowerMessage.includes("जोड़")) {
       return "Great! Let's learn addition (जोड़ना).\n\nWhen we add numbers, we put them together. For example:\n5 + 3 = 8\n\nTry this: What is 12 + 7?";
     }
-    
+
     if (lowerMessage.includes("multiply") || lowerMessage.includes("times") || lowerMessage.includes("गुणा")) {
       return "Wonderful! Multiplication (गुणा) is repeated addition.\n\nFor example: 4 × 3 means adding 4 three times:\n4 + 4 + 4 = 12\n\nSo 4 × 3 = 12\n\nTry: What is 5 × 6?";
     }
-    
+
     if (lowerMessage.includes("fraction") || lowerMessage.includes("half") || lowerMessage.includes("भिन्न")) {
       return "Fractions (भिन्न) show parts of a whole!\n\n1/2 means one part out of two equal parts (half)\n1/4 means one part out of four equal parts (quarter)\n\nIf you have 1 roti and cut it into 4 equal pieces, each piece is 1/4 of the roti! 🍞\n\nWhat fraction questions do you have?";
     }
-    
+
     if (/\d+\s*[\+\-\*\/]\s*\d+/.test(lowerMessage)) {
       try {
         const result = eval(lowerMessage.replace(/[^\d\+\-\*\/\(\)]/g, ''));
@@ -82,11 +86,11 @@ Answer:`;
         return "I can help you with that! Can you write it in this format: number + number (like 5 + 3)?";
       }
     }
-    
+
     if (lowerMessage.includes("help") || lowerMessage.includes("मदद")) {
       return "I'm here to help you learn! 🌟\n\nI can teach you:\n• Addition (जोड़ना)\n• Subtraction (घटाना)\n• Multiplication (गुणा)\n• Division (भाग)\n• Fractions (भिन्न)\n\nJust ask me about any topic or give me a math problem to solve!";
     }
-    
+
     return "That's a great question! I can help you with Grade 5 Maths topics like addition, subtraction, multiplication, division, and fractions. What would you like to learn about? 📚";
   };
 
@@ -101,7 +105,7 @@ Answer:`;
     try {
       // Simulate processing delay
       await new Promise(resolve => setTimeout(resolve, 800));
-      
+
       const aiResponse = await getAIResponse(userMessage.content);
       const assistantMessage: Message = { role: "assistant", content: aiResponse };
       setMessages((prev) => [...prev, assistantMessage]);
@@ -127,7 +131,7 @@ Answer:`;
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate("/")}
+          onClick={() => navigate("/subjects")}
           className="rounded-full"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -139,6 +143,7 @@ Answer:`;
             {aiPipeline ? "AI Ready (Offline)" : "Basic Mode"}
           </p>
         </div>
+        <LanguageSelector />
       </div>
 
       {/* Messages */}

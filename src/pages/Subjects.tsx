@@ -2,14 +2,16 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { SubjectCard } from "@/components/SubjectCard";
 import { AIModelLoader } from "@/components/AIModelLoader";
-import { Calculator, Book, Globe, Wifi, WifiOff } from "lucide-react";
+import { Calculator, Book, Globe, Wifi, WifiOff, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import LanguageSelector from "@/components/LanguageSelector";
+import { useLanguage } from "@/contexts/LanguageContext";
 
-const Index = () => {
+const Subjects = () => {
   const navigate = useNavigate();
   const [isModelLoaded, setIsModelLoaded] = useState(false);
-  const [aiPipeline, setAiPipeline] = useState<any>(null);
+  const { setAiPipeline, aiPipeline } = useLanguage();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {
@@ -71,18 +73,36 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5">
+      {/* Top Navigation */}
+      <div className="px-4 pt-4 flex items-center justify-between">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate("/")}
+          className="rounded-full hover:bg-muted"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back
+        </Button>
+        <LanguageSelector />
+      </div>
+
       {/* Hero Section */}
-      <div className="px-6 pt-12 pb-8 text-center space-y-4">
-        <div className="w-24 h-24 mx-auto rounded-3xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-[var(--shadow-medium)]">
-          <span className="text-4xl">🎓</span>
+      <div className="px-6 pt-8 pb-8 text-center space-y-4">
+        <div className="w-24 h-24 mx-auto rounded-3xl bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center shadow-[var(--shadow-medium)] overflow-hidden border-2 border-primary/20">
+          <img
+            src="/teacher-mascot.jpg"
+            alt="AI Sathi Teacher"
+            className="w-full h-full object-cover"
+          />
         </div>
-        
+
         <div className="space-y-2">
           <h1 className="text-3xl font-bold text-foreground">
             AI Sathi
           </h1>
           <p className="text-muted-foreground max-w-md mx-auto">
-            Your personal AI tutor that works without internet. Learn anytime, anywhere! 
+            Your personal AI tutor that works without internet. Learn anytime, anywhere!
           </p>
         </div>
 
@@ -151,4 +171,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default Subjects;
