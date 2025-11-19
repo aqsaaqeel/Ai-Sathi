@@ -2,11 +2,13 @@ import { useState, useRef, useEffect } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, Send, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import LanguageSelector from "@/components/LanguageSelector";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useVoiceInput } from "@/hooks/useVoiceInput";
+import { useTextToSpeech } from "@/hooks/useTextToSpeech";
 
 interface Message {
   role: "user" | "assistant";
@@ -16,18 +18,26 @@ interface Message {
 const Chat = () => {
   const location = useLocation();
   const locationPipeline = location.state?.pipeline;
-  const { aiPipeline: contextPipeline } = useLanguage();
+  const { aiPipeline: contextPipeline, language, translate } = useLanguage();
   const aiPipeline = locationPipeline || contextPipeline;
   const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "नमस्ते! Hello! I'm your AI Sathi. I can help you learn Grade 5 Maths. Ask me anything about addition, subtraction, multiplication, division, or fractions! 😊",
+      content: "Hello! I'm your AI tutor. Ask me anything about your lesson or share your doubts!",
     },
   ]);
   const [input, setInput] = useState("");
+  const [placeholder, setPlaceholder] = useState("Type your question...");
   const [isLoading, setIsLoading] = useState(false);
+  const [autoSpeak, setAutoSpeak] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Voice input hook
+  const voiceInput = useVoiceInput(language);
+
+  // Text-to-speech hook
+  const tts = useTextToSpeech(language);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -36,6 +46,31 @@ const Chat = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Update welcome message and placeholder when language changes
+  useEffect(() => {
+    const updateTranslations = async () => {
+      const welcomeText = "Hello! I'm your AI tutor. Ask me anything about your lesson or share your doubts!";
+      const placeholderText = "Type your question...";
+
+      const translatedWelcome = await translate(welcomeText);
+      const translatedPlaceholder = await translate(placeholderText);
+
+      setPlaceholder(translatedPlaceholder);
+
+      // Update welcome message if it's the first message
+      setMessages(prev => {
+        if (prev.length > 0 && prev[0].role === 'assistant') {
+          const newMessages = [...prev];
+          newMessages[0] = { ...newMessages[0], content: translatedWelcome };
+          return newMessages;
+        }
+        return prev;
+      });
+    };
+
+    updateTranslations();
+  }, [language, translate]);
 
   const getAIResponse = async (userMessage: string): Promise<string> => {
     // If AI pipeline is available, use it for intelligent responses
@@ -109,6 +144,11 @@ Answer:`;
       const aiResponse = await getAIResponse(userMessage.content);
       const assistantMessage: Message = { role: "assistant", content: aiResponse };
       setMessages((prev) => [...prev, assistantMessage]);
+
+      // Speak the AI response if autoSpeak is enabled
+      if (autoSpeak && tts.isSupported) {
+        setTimeout(() => tts.speak(aiResponse), 300);
+      }
     } catch (error) {
       console.error("Error getting response:", error);
       toast.error("Sorry, I had trouble understanding. Please try again!");
@@ -121,6 +161,29 @@ Answer:`;
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    }
+  };
+
+  // Effect to handle voice input transcript
+  useEffect(() => {
+    if (voiceInput.transcript && !voiceInput.isProcessing) {
+      setInput(voiceInput.transcript);
+      voiceInput.clearTranscript();
+    }
+  }, [voiceInput.transcript, voiceInput.isProcessing]);
+
+  // Effect to show voice input errors
+  useEffect(() => {
+    if (voiceInput.error) {
+      toast.error(voiceInput.error);
+    }
+  }, [voiceInput.error]);
+
+  const handleVoiceInput = () => {
+    if (voiceInput.isRecording) {
+      voiceInput.stopRecording();
+    } else {
+      voiceInput.startRecording();
     }
   };
 
@@ -163,15 +226,70 @@ Answer:`;
 
       {/* Input */}
       <div className="bg-card border-t border-border p-4">
+        {/* Voice input status */}
+        {(voiceInput.isRecording || voiceInput.isProcessing) && (
+          <div className="mb-3 p-3 bg-primary/10 rounded-xl border border-primary/20">
+            <div className="flex items-center gap-2 text-sm text-primary">
+              {voiceInput.isRecording && (
+                <>
+                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                  <span>Recording... Tap mic to stop</span>
+                </>
+              )}
+              {voiceInput.isProcessing && (
+                <>
+                  <div className="w-2 h-2 bg-primary rounded-full animate-spin"></div>
+                  <span>Transcribing speech...</span>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="flex gap-2">
+          {/* Voice Input Button */}
+          <Button
+            onClick={handleVoiceInput}
+            disabled={isLoading || voiceInput.isProcessing}
+            size="icon"
+            variant={voiceInput.isRecording ? "default" : "outline"}
+            className={`h-[60px] w-[60px] rounded-2xl transition-all ${voiceInput.isRecording
+              ? 'bg-destructive hover:bg-destructive/90 animate-pulse'
+              : 'hover:bg-primary/10'
+              }`}
+          >
+            {voiceInput.isRecording ? (
+              <MicOff className="w-5 h-5" />
+            ) : (
+              <Mic className="w-5 h-5" />
+            )}
+          </Button>
+
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Ask me anything about maths..."
+            placeholder={placeholder}
             className="min-h-[60px] max-h-[120px] resize-none rounded-2xl"
-            disabled={isLoading}
+            disabled={isLoading || voiceInput.isRecording}
           />
+
+          {/* TTS Toggle Button */}
+          <Button
+            onClick={() => setAutoSpeak(!autoSpeak)}
+            size="icon"
+            variant="outline"
+            className={`h-[60px] w-[60px] rounded-2xl transition-all ${autoSpeak ? 'bg-primary/10 border-primary/20' : ''
+              }`}
+            title={autoSpeak ? "Auto-speak enabled" : "Auto-speak disabled"}
+          >
+            {autoSpeak ? (
+              <Volume2 className="w-5 h-5 text-primary" />
+            ) : (
+              <VolumeX className="w-5 h-5" />
+            )}
+          </Button>
+
           <Button
             onClick={handleSend}
             disabled={!input.trim() || isLoading}

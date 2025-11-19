@@ -73,6 +73,8 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
                 'NCERT Aligned': 'NCERT के अनुसार',
                 'Free Forever': 'हमेशा मुफ़्त',
                 'Powered by AI • Designed for Indian Students • Made with ❤️': 'AI द्वारा संचालित • भारतीय छात्रों के लिए डिज़ाइन किया गया • ❤️ के साथ बनाया गया',
+                'Hello! I\'m your AI tutor. Ask me anything about your lesson or share your doubts!': 'नमस्ते! मैं आपका AI शिक्षक हूं। अपने पाठ के बारे में कुछ भी पूछें!',
+                'Type your question...': 'अपना प्रश्न लिखें...',
             },
             kn: {
                 'Choose Your Class': 'ನಿಮ್ಮ ತರಗತಿಯನ್ನು ಆಯ್ಕೆಮಾಡಿ',
@@ -89,6 +91,8 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
                 'NCERT Aligned': 'NCERT ಪ್ರಕಾರ',
                 'Free Forever': 'ಶಾಶ್ವತವಾಗಿ ಉಚಿತ',
                 'Powered by AI • Designed for Indian Students • Made with ❤️': 'AI ನಿಂದ ನಡೆಸಲ್ಪಡುತ್ತದೆ • ಭಾರತೀಯ ವಿದ್ಯಾರ್ಥಿಗಳಿಗಾಗಿ ವಿನ್ಯಾಸಗೊಳಿಸಲಾಗಿದೆ • ❤️ ನೊಂದಿಗೆ ತಯಾರಿಸಲಾಗಿದೆ',
+                'Hello! I\'m your AI tutor. Ask me anything about your lesson or share your doubts!': 'ನಮಸ್ಕಾರ! ನಾನು ನಿಮ್ಮ AI ಶಿಕ್ಷಕ. ನಿಮ್ಮ ಪಾಠದ ಬಗ್ಗೆ ಏನನ್ನು ಬೇಕಾದರೂ ಕೇಳಿ!',
+                'Type your question...': 'ನಿಮ್ಮ ಪ್ರಶ್ನೆ ಬರೆಯಿರಿ...',
             },
             en: {},
         };
