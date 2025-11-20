@@ -1,0 +1,24 @@
+{
+  "name": "AI Sathi - Your Learning Friend",
+  "short_name": "AI Sathi",
+  "description": "Offline AI tutor for NCERT curriculum - works without internet",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FEF7F3",
+  "theme_color": "#F97316",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

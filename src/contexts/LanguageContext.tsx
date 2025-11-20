@@ -116,15 +116,20 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
                     en: 'English'
                 };
 
-                const prompt = `Translate the following text to ${languageNames[lang]}. Only provide the translation, nothing else.\n\nText: ${text}\n\nTranslation:`;
+                const prompt = `Translate the following text to ${languageNames[lang]}. Only provide the translation, nothing else.`;
 
-                const result = await aiPipeline(prompt, {
-                    max_new_tokens: 200,
+                const messages = [
+                    { role: "system", content: prompt },
+                    { role: "user", content: text }
+                ];
+
+                const result = await aiPipeline.chat.completions.create({
+                    messages,
+                    max_tokens: 200,
                     temperature: 0.3,
-                    do_sample: true,
                 });
 
-                const translation = (result as any)[0]?.generated_text || text;
+                const translation = result.choices[0].message.content || text;
 
                 // Extract just the translation part (after "Translation:")
                 const translationMatch = translation.match(/Translation:\s*(.+)/s);
