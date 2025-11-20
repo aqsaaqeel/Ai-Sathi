@@ -1,54 +1,21 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calculator, Shapes, Scale, Clock } from "lucide-react";
-import { SubjectCard } from "@/components/SubjectCard";
+import { Card } from "@/components/ui/card";
+import { ArrowLeft, Calculator, PlayCircle, Lock } from "lucide-react";
 import LanguageSelector from "@/components/LanguageSelector";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { mathsChapters } from "@/data/lessonContent";
 
 const MathsChapters = () => {
     const navigate = useNavigate();
-    const { aiPipeline, t } = useLanguage();
+    const { t, language } = useLanguage();
 
-    const chapters = [
-        {
-            id: 'numbers',
-            title: t("Numbers and Operations"),
-            description: t("Learn about numbers, addition, and subtraction"),
-            icon: Calculator,
-            color: "primary" as const,
-        },
-        {
-            id: 'shapes',
-            title: t("Shapes and Patterns"),
-            description: t("Identify shapes and create patterns"),
-            icon: Shapes,
-            color: "learning" as const,
-        },
-        {
-            id: 'measurement',
-            title: t("Measurement"),
-            description: t("Learn about length, weight, and capacity"),
-            icon: Scale,
-            color: "accent" as const,
-        },
-        {
-            id: 'time',
-            title: t("Time and Money"),
-            description: t("Tell time and understand money"),
-            icon: Clock,
-            color: "primary" as const,
-        }
-    ];
-
-    const handleChapterClick = (chapterId: string) => {
-        // Navigate to chat with the selected chapter context
-        navigate("/chat", {
+    const handleLessonClick = (chapterId: string, lessonId: string) => {
+        navigate("/learn", {
             state: {
-                pipeline: aiPipeline,
-                context: {
-                    subject: 'Maths',
-                    chapter: chapterId
-                }
+                subject: "maths",
+                chapterId,
+                lessonId,
             }
         });
     };
@@ -85,20 +52,54 @@ const MathsChapters = () => {
                 </div>
             </div>
 
-            {/* Chapters Grid */}
-            <div className="px-6 pb-8 space-y-4">
-                <div className="grid gap-4">
-                    {chapters.map((chapter) => (
-                        <SubjectCard
-                            key={chapter.id}
-                            title={chapter.title}
-                            description={chapter.description}
-                            icon={chapter.icon}
-                            color={chapter.color}
-                            onClick={() => handleChapterClick(chapter.id)}
-                        />
-                    ))}
-                </div>
+            {/* Chapters & Lessons */}
+            <div className="px-6 pb-8 space-y-6">
+                {mathsChapters.map((chapter) => (
+                    <div key={chapter.id}>
+                        <h2 className="text-xl font-bold mb-3">
+                            {language === "hi" ? chapter.titleHindi : chapter.title}
+                        </h2>
+                        
+                        <div className="space-y-3">
+                            {chapter.lessons.map((lesson, index) => (
+                                <Card
+                                    key={lesson.id}
+                                    className="p-4 hover:shadow-md transition-shadow cursor-pointer border-2"
+                                    onClick={() => handleLessonClick(chapter.id, lesson.id)}
+                                >
+                                    <div className="flex items-center gap-4">
+                                        {/* Lesson Number */}
+                                        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg">
+                                            {index + 1}
+                                        </div>
+                                        
+                                        {/* Lesson Info */}
+                                        <div className="flex-1">
+                                            <h3 className="font-semibold text-lg">
+                                                {language === "hi" ? lesson.titleHindi : lesson.title}
+                                            </h3>
+                                            <p className="text-sm text-gray-600">{lesson.description}</p>
+                                            <div className="flex items-center gap-3 mt-1">
+                                                <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                                                    {lesson.difficulty}
+                                                </span>
+                                                <span className="text-xs text-gray-500">
+                                                    ⏱️ {lesson.duration}
+                                                </span>
+                                                <span className="text-xs text-gray-500">
+                                                    📝 {lesson.cards.length} cards
+                                                </span>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Play Button */}
+                                        <PlayCircle className="w-8 h-8 text-blue-500" />
+                                    </div>
+                                </Card>
+                            ))}
+                        </div>
+                    </div>
+                ))}
             </div>
         </div>
     );

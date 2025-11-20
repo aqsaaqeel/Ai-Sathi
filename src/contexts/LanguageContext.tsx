@@ -2,6 +2,13 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 export type Language = 'en' | 'hi' | 'kn';
 
+export interface LiteracyState {
+    completedAssessment: boolean;
+    hindiScore: number;
+    englishScore: number;
+    placement: "hindi-literacy" | "english-literacy" | "both-literacy" | "skip-to-subjects" | null;
+}
+
 interface LanguageContextType {
     language: Language;
     setLanguage: (lang: Language) => void;
@@ -9,6 +16,8 @@ interface LanguageContextType {
     t: (text: string) => string;
     aiPipeline: any;
     setAiPipeline: (pipeline: any) => void;
+    literacyState: LiteracyState;
+    setLiteracyState: (state: LiteracyState) => void;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -93,6 +102,12 @@ const staticTranslations: Record<Language, Record<string, string>> = {
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [language, setLanguage] = useState<Language>('en');
     const [aiPipeline, setAiPipeline] = useState<any>(null);
+    const [literacyState, setLiteracyState] = useState<LiteracyState>({
+        completedAssessment: localStorage.getItem('completedAssessment') === 'true',
+        hindiScore: parseInt(localStorage.getItem('hindiScore') || '0'),
+        englishScore: parseInt(localStorage.getItem('englishScore') || '0'),
+        placement: (localStorage.getItem('placement') as LiteracyState['placement']) || null,
+    });
 
     const t = (text: string): string => {
         if (language === 'en') return text;
@@ -148,7 +163,7 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     };
 
     return (
-        <LanguageContext.Provider value={{ language, setLanguage, translate, t, aiPipeline, setAiPipeline }}>
+        <LanguageContext.Provider value={{ language, setLanguage, translate, t, aiPipeline, setAiPipeline, literacyState, setLiteracyState }}>
             {children}
         </LanguageContext.Provider>
     );

@@ -6,6 +6,7 @@ import { ArrowLeft, Send } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { getTutoringResponse, evaluateMathExpression } from "@/services/geminiService";
 
 interface Message {
   role: "user" | "assistant";
@@ -15,33 +16,29 @@ interface Message {
 const Chat = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { aiPipeline } = useLanguage();
+  const { language } = useLanguage();
   
-  // Get models from context (primary source) or navigation state (fallback)
-  const pipelines = aiPipeline || location.state?.pipeline;
-  const mathModel = pipelines?.mathModel;
-  const textModel = pipelines?.textModel;
+  // Get subject, chapter, and initial question from location state
+  const subject = (location.state as { subject?: string })?.subject || "Maths";
+  const chapter = (location.state as { chapter?: string })?.chapter || "General";
+  const initialQuestion = (location.state as { initialQuestion?: string })?.initialQuestion;
   
-  // Debug logging
-  useEffect(() => {
-    console.log("🔍 Chat Component - Debug Info:");
-    console.log("aiPipeline from context:", aiPipeline);
-    console.log("pipeline from location.state:", location.state?.pipeline);
-    console.log("Final pipelines object:", pipelines);
-    console.log("Math Model loaded:", mathModel ? "✅" : "❌");
-    console.log("Text Model loaded:", textModel ? "✅" : "❌");
-  }, [aiPipeline, location.state, pipelines, mathModel, textModel]);
+  // Map language context to tutoring language
+  const tutoringLanguage = language === "hi" ? "hindi" : language === "kn" ? "english" : "english";
   
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "नमस्ते! Hello! I'm your AI Sathi. I can help you learn Grade 5 Maths. Ask me anything about addition, subtraction, multiplication, division, or fractions! 😊",
+      content: tutoringLanguage === "hindi"
+        ? `नमस्ते! मैं आपका AI साथी हूँ। मैं ${subject} विषय में ${chapter} के बारे में आपकी मदद कर सकता हूँ। मुझसे कुछ भी पूछें! 😊`
+        : `Hello! I'm your AI Sathi. I can help you learn ${subject} - ${chapter}. Ask me anything! 😊`,
     },
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [currentModel, setCurrentModel] = useState<"math" | "text" | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const hasProcessedInitialQuestion = useRef(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -50,6 +47,32 @@ const Chat = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Handle initial question from card context
+  useEffect(() => {
+    if (initialQuestion && !hasProcessedInitialQuestion.current) {
+      hasProcessedInitialQuestion.current = true;
+      // Add the initial question as a user message and get AI response
+      const processInitialQuestion = async () => {
+        const userMessage: Message = { role: "user", content: initialQuestion };
+        setMessages((prev) => [...prev, userMessage]);
+        setIsLoading(true);
+
+        try {
+          await new Promise(resolve => setTimeout(resolve, 800));
+          const aiResponse = await getAIResponse(initialQuestion);
+          const assistantMessage: Message = { role: "assistant", content: aiResponse };
+          setMessages((prev) => [...prev, assistantMessage]);
+        } catch (error) {
+          console.error("Error getting response:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      processInitialQuestion();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialQuestion]);
 
   // Determine if question is math-related
   const isMathQuestion = (message: string): boolean => {
@@ -74,89 +97,29 @@ const Chat = () => {
   };
 
   const getAIResponse = async (userMessage: string): Promise<string> => {
-    const isMath = isMathQuestion(userMessage);
+    // 🔄 USING GEMINI (temporary - will replace with local SLM later)
+    console.log("🤖 Using Gemini API for tutoring");
     
-    // If AI models are available, use them for intelligent responses
-    if (mathModel && textModel) {
-      try {
-        if (isMath) {
-          // Use Math Model (Flan-T5) for calculations and math problems
-          setCurrentModel("math");
-          console.log("🔢 Using MATH model for:", userMessage);
-          
-          const prompt = `Solve this math problem for a Grade 5 student. Explain step-by-step in simple language.
+    try {
+      // Build chat history for context
+      const chatHistory = messages.slice(-4).map(msg => ({
+        role: msg.role,
+        content: msg.content,
+      }));
 
-Question: ${userMessage}
+      // Call Gemini tutoring service
+      const response = await getTutoringResponse({
+        subject,
+        chapter,
+        language: tutoringLanguage,
+        userQuestion: userMessage,
+        chatHistory,
+      });
 
-Answer:`;
-
-          const result = await mathModel(prompt, {
-            max_new_tokens: 150,
-            temperature: 0.3,
-            do_sample: false,
-          });
-          
-          return (result as any)[0].generated_text || "I'm having trouble with that calculation. Can you rephrase?";
-          
-        } else {
-          // Use Text Model (TinyLlama) for explanations and conversations
-          setCurrentModel("text");
-          console.log("💬 Using TEXT model for:", userMessage);
-          
-          // Build conversation context from recent messages (last 3 exchanges)
-          const recentMessages = messages.slice(-6); // Last 3 user + 3 assistant messages
-          let conversationContext = "";
-          
-          recentMessages.forEach(msg => {
-            if (msg.role === "user") {
-              conversationContext += `Student: ${msg.content}\n`;
-            } else {
-              conversationContext += `Teacher: ${msg.content}\n`;
-            }
-          });
-          
-          // Format for Qwen chat with conversation context
-          const prompt = `<|im_start|>system
-You are AI Sathi, a friendly and patient tutor for Grade 5 NCERT Maths in India. 
-- Answer in simple language that a 10-year-old can understand
-- Use both English and Hindi terms when helpful
-- Keep responses short (3-5 sentences), encouraging, and grade-appropriate
-- When student asks "yes" or "explain", provide the explanation they're asking for
-- Use examples from daily life (rotis, rupees, cricket, etc)
-- Always be encouraging and supportive<|im_end|>
-<|im_start|>user
-Previous conversation:
-${conversationContext}
-
-Current question: ${userMessage}<|im_end|>
-<|im_start|>assistant
-`;
-
-          const result = await textModel(prompt, {
-            max_new_tokens: 250,
-            temperature: 0.7,
-            do_sample: true,
-            top_p: 0.9,
-          });
-          
-          // Extract just the assistant's response
-          let response = (result as any)[0].generated_text || "";
-          response = response.replace(prompt, "").trim();
-          response = response.replace(/<\|im_end\|>/g, "").trim();
-          response = response.replace(/<\|im_start\|>/g, "").trim();
-          
-          // If response is too short or empty, provide a better fallback
-          if (!response || response.length < 20) {
-            return "I'm here to help! Could you please be more specific about what you'd like to learn? For example, you can ask me about addition, subtraction, multiplication, division, or fractions! 😊";
-          }
-          
-          return response;
-        }
-      } catch (error) {
-        console.error("AI generation error:", error);
-        setCurrentModel(null);
-        // Fall through to rule-based responses
-      }
+      return response;
+    } catch (error) {
+      console.error("Gemini API error:", error);
+      // Fall through to local fallback
     }
     
     // Fallback: Rule-based responses (when models aren't loaded)
@@ -267,34 +230,19 @@ Current question: ${userMessage}<|im_end|>
           <h1 className="font-semibold text-foreground">AI Sathi</h1>
           <p className="text-xs text-success flex items-center gap-1">
             <span className="w-2 h-2 bg-success rounded-full animate-pulse"></span>
-            {mathModel && textModel ? (
-              currentModel === "math" ? "🔢 Math Mode (Offline)" : 
-              currentModel === "text" ? "💬 Explain Mode (Offline)" : 
-              "AI Ready (Offline)"
-            ) : "Basic Mode"}
+            🤖 Gemini AI (Prototype)
           </p>
         </div>
       </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {/* Debug Info - Remove in production */}
-        {!mathModel || !textModel ? (
-          <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl">
-            <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-2">⚠️ AI Models Status:</p>
-            <p className="text-xs text-yellow-700 dark:text-yellow-300">
-              Math Model: {mathModel ? "✅ Loaded" : "❌ Not Loaded"}<br/>
-              Text Model: {textModel ? "✅ Loaded" : "❌ Not Loaded"}<br/>
-              <span className="mt-1 block italic">Using rule-based responses for now.</span>
-            </p>
-          </div>
-        ) : (
-          <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-xl">
-            <p className="text-xs text-green-700 dark:text-green-300">
-              ✅ Both AI models loaded successfully! Fully offline mode active.
-            </p>
-          </div>
-        )}
+        {/* Info Banner */}
+        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl">
+          <p className="text-xs text-blue-700 dark:text-blue-300">
+            ✨ Using Gemini AI (temporary prototype). Will replace with local SLM soon!
+          </p>
+        </div>
         
         {messages.map((message, index) => (
           <ChatMessage key={index} role={message.role} content={message.content} />

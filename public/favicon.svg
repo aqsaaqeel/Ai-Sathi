@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Background circle -->
+  <circle cx="50" cy="50" r="48" fill="#6366f1" stroke="#4f46e5" stroke-width="2"/>
+  
+  <!-- Book shape -->
+  <rect x="30" y="35" width="40" height="30" rx="2" fill="#ffffff"/>
+  <line x1="50" y1="35" x2="50" y2="65" stroke="#6366f1" stroke-width="2"/>
+  
+  <!-- Sparkle/Star for AI -->
+  <circle cx="70" cy="30" r="3" fill="#fbbf24"/>
+  <circle cx="75" cy="25" r="2" fill="#fbbf24"/>
+  <circle cx="65" cy="25" r="2" fill="#fbbf24"/>
+  
+  <!-- Smile -->
+  <path d="M 35 70 Q 50 75 65 70" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round"/>
+</svg>

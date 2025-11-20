@@ -1,157 +1,171 @@
+/**
+ * CLASS SELECTION PAGE
+ * 
+ * Shows classes 5-10, only Class 5 is currently enabled
+ * Others are greyed out (coming soon)
+ */
+
 import { useNavigate } from "react-router-dom";
-import { GraduationCap } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import LanguageSelector from "@/components/LanguageSelector";
-import { useTranslation } from "@/hooks/useTranslation";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { BookOpen, Lock } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
+
+interface ClassOption {
+  id: number;
+  enabled: boolean;
+}
 
 const ClassSelection = () => {
     const navigate = useNavigate();
-    const title = useTranslation("AI Sathi");
-    const subtitle = useTranslation("Your personal AI tutor that works without internet. Learn anytime, anywhere!");
-    const worksOffline = useTranslation("Works Offline");
-    const ncertAligned = useTranslation("NCERT Aligned");
-    const freeForever = useTranslation("Free Forever");
-    const chooseClass = useTranslation("Choose Your Class");
-    const selectGrade = useTranslation("Select your grade to start learning");
-    const comingSoon = useTranslation("Coming Soon");
-    const startClass5 = useTranslation("Start with Class 5");
-    const infoText = useTranslation("Learn Maths, Language, and more with AI-powered explanations in simple language. More classes coming soon!");
-    const footer = useTranslation("Powered by AI • Designed for Indian Students • Made with ❤️");
-    const classLabel = useTranslation("Class");
+    const { language } = useLanguage();
 
-    const classes = [
-        { number: 5, available: true },
-        { number: 6, available: false },
-        { number: 7, available: false },
-        { number: 8, available: false },
-        { number: 9, available: false },
-        { number: 10, available: false },
+    const classes: ClassOption[] = [
+        { id: 5, enabled: true },
+        { id: 6, enabled: false },
+        { id: 7, enabled: false },
+        { id: 8, enabled: false },
+        { id: 9, enabled: false },
+        { id: 10, enabled: false },
     ];
 
-    const handleClassClick = (classNumber: number, available: boolean) => {
-        if (available) {
-            navigate("/subjects");
-        } else {
-            toast.info(`Class ${classNumber} coming soon! Start with Class 5 for now.`);
-        }
+    const handleClassSelect = (classNum: number, enabled: boolean) => {
+        if (!enabled) return;
+        
+        // Save selected class
+        localStorage.setItem("selectedClass", classNum.toString());
+        
+        // Navigate to subjects
+        navigate("/subjects");
+    };
+
+    const getText = (key: string) => {
+        const translations: { [key: string]: { en: string; hi: string; kn: string } } = {
+            title: {
+                en: "Select Your Class",
+                hi: "अपनी कक्षा चुनें",
+                kn: "ನಿಮ್ಮ ತರಗತಿಯನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+            },
+            subtitle: {
+                en: "Choose which class you're studying in",
+                hi: "चुनें कि आप किस कक्षा में पढ़ते हैं",
+                kn: "ನೀವು ಯಾವ ತರಗತಿಯಲ್ಲಿ ಓದುತ್ತಿದ್ದೀರಿ ಎಂಬುದನ್ನು ಆರಿಸಿ",
+            },
+            class: {
+                en: "Class",
+                hi: "कक्षा",
+                kn: "ತರಗತಿ",
+            },
+            comingSoon: {
+                en: "Coming Soon",
+                hi: "जल्द आ रहा है",
+                kn: "ಶೀಘ್ರದಲ್ಲಿ ಬರಲಿದೆ",
+            },
+            available: {
+                en: "Available Now",
+                hi: "अभी उपलब्ध",
+                kn: "ಈಗ ಲಭ್ಯವಿದೆ",
+            },
+            info: {
+                en: "Currently only Class 5 is available. More classes coming soon!",
+                hi: "वर्तमान में केवल कक्षा 5 उपलब्ध है। अधिक कक्षाएं जल्द ही आ रही हैं!",
+                kn: "ಪ್ರಸ್ತುತ ತರಗತಿ 5 ಮಾತ್ರ ಲಭ್ಯವಿದೆ. ಹೆಚ್ಚಿನ ತರಗತಿಗಳು ಶೀಘ್ರದಲ್ಲಿ ಬರಲಿವೆ!",
+            },
+        };
+
+        return translations[key]?.[language] || translations[key]?.en || "";
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5">
-            {/* Language Selector - Top Right */}
-            <div className="absolute top-4 right-4 z-10">
-                <LanguageSelector />
-            </div>
-
-            {/* Hero Section */}
-            <div className="px-6 pt-16 pb-12 text-center space-y-6">
-                <div className="w-32 h-32 mx-auto rounded-3xl bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center shadow-[var(--shadow-medium)] animate-in fade-in zoom-in duration-500 overflow-hidden border-2 border-primary/20">
-                    <img
-                        src="/teacher-mascot.jpg"
-                        alt="AI Sathi Teacher"
-                        className="w-full h-full object-cover"
-                    />
-                </div>
-
-                <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150">
-                    <h1 className="text-4xl font-bold text-foreground bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                        {title.text}
+        <div className="min-h-screen bg-gradient-to-b from-blue-50 via-purple-50 to-pink-50">
+            <div className="max-w-4xl mx-auto px-4 py-12">
+                {/* Header with Teacher Mascot */}
+                <div className="text-center mb-12">
+                    <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 p-1.5 shadow-xl">
+                        <div className="w-full h-full rounded-full bg-white p-1 overflow-hidden">
+                            <img
+                                src="/teacher-mascot.jpg"
+                                alt="AI Sathi Teacher"
+                                className="w-full h-full object-cover rounded-full"
+                            />
+                        </div>
+                    </div>
+                    <h1 className="text-4xl font-bold mb-3 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                        {getText("title")}
                     </h1>
-                    <p className="text-lg text-muted-foreground max-w-md mx-auto leading-relaxed">
-                        {subtitle.text}
-                    </p>
-                </div>
-
-                {/* Feature Badges */}
-                <div className="flex flex-wrap items-center justify-center gap-2 pt-2 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
-                    <div className="flex items-center gap-1.5 text-xs font-medium text-success bg-success/10 px-3 py-1.5 rounded-full border border-success/20">
-                        <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></span>
-                        {worksOffline.text}
-                    </div>
-                    <div className="flex items-center gap-1.5 text-xs font-medium text-primary bg-primary/10 px-3 py-1.5 rounded-full border border-primary/20">
-                        <GraduationCap className="w-3 h-3" />
-                        {ncertAligned.text}
-                    </div>
-                    <div className="flex items-center gap-1.5 text-xs font-medium text-accent bg-accent/10 px-3 py-1.5 rounded-full border border-accent/20">
-                        ✨ {freeForever.text}
-                    </div>
-                </div>
-            </div>
-
-            {/* Class Selection */}
-            <div className="px-6 pb-12 space-y-6">
-                <div className="text-center space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-500">
-                    <h2 className="text-2xl font-bold text-foreground">{chooseClass.text}</h2>
-                    <p className="text-sm text-muted-foreground">
-                        {selectGrade.text}
+                    <p className="text-lg text-gray-600">
+                        {getText("subtitle")}
                     </p>
                 </div>
 
                 {/* Class Grid */}
-                <div className="grid grid-cols-2 gap-4 max-w-md mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700 delay-700">
-                    {classes.map((classItem, index) => (
-                        <Button
-                            key={classItem.number}
-                            onClick={() => handleClassClick(classItem.number, classItem.available)}
-                            disabled={!classItem.available}
-                            className={`
-                relative h-32 rounded-2xl text-lg font-semibold transition-all duration-300
-                ${classItem.available
-                                    ? 'bg-gradient-to-br from-primary to-secondary hover:shadow-xl hover:scale-105 text-white border-0'
-                                    : 'bg-muted/50 text-muted-foreground hover:bg-muted border border-border/50'
-                                }
-                animate-in fade-in zoom-in duration-500
-              `}
-                            style={{ animationDelay: `${800 + index * 100}ms` }}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
+                    {classes.map((classOption) => (
+                        <Card
+                            key={classOption.id}
+                            className={`relative p-6 transition-all cursor-pointer ${
+                                classOption.enabled
+                                    ? "hover:shadow-lg hover:scale-105 border-2 border-blue-200 bg-white"
+                                    : "opacity-50 cursor-not-allowed bg-gray-50 border border-gray-200"
+                            }`}
+                            onClick={() => handleClassSelect(classOption.id, classOption.enabled)}
                         >
-                            <div className="flex flex-col items-center justify-center gap-2">
-                                <span className="text-3xl font-bold">
-                                    {classItem.number}
-                                </span>
-                                <span className="text-sm font-medium opacity-90">
-                                    {classLabel.text} {classItem.number}
-                                </span>
-                                {classItem.available && (
-                                    <div className="absolute top-2 right-2">
-                                        <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
-                                    </div>
-                                )}
-                                {!classItem.available && (
-                                    <span className="absolute bottom-2 text-xs opacity-60">
-                                        {comingSoon.text}
-                                    </span>
+                            {/* Lock Icon for Disabled */}
+                            {!classOption.enabled && (
+                                <div className="absolute top-3 right-3">
+                                    <Lock className="w-5 h-5 text-gray-400" />
+                                </div>
+                            )}
+
+                            {/* Class Number */}
+                            <div className="text-center mb-3">
+                                <div
+                                    className={`text-5xl font-bold mb-2 ${
+                                        classOption.enabled
+                                            ? "text-blue-600"
+                                            : "text-gray-400"
+                                    }`}
+                                >
+                                    {classOption.id}
+                                </div>
+                                <p
+                                    className={`text-sm font-semibold ${
+                                        classOption.enabled
+                                            ? "text-gray-700"
+                                            : "text-gray-400"
+                                    }`}
+                                >
+                                    {getText("class")} {classOption.id}
+                                </p>
+                            </div>
+
+                            {/* Status Badge */}
+                            <div className="flex justify-center">
+                                {classOption.enabled ? (
+                                    <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
+                                        {getText("available")}
+                                    </Badge>
+                                ) : (
+                                    <Badge className="bg-gray-200 text-gray-600">
+                                        {getText("comingSoon")}
+                                    </Badge>
                                 )}
                             </div>
-                        </Button>
+
+                            {/* Hover Effect Border for Enabled */}
+                            {classOption.enabled && (
+                                <div className="absolute inset-0 rounded-lg border-2 border-transparent hover:border-blue-400 transition-colors pointer-events-none"></div>
+                            )}
+                        </Card>
                     ))}
                 </div>
 
-                {/* Info Card */}
-                <div className="max-w-md mx-auto p-6 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-3xl border border-primary/20 space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-1000">
-                    <div className="flex items-start gap-3">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center flex-shrink-0 overflow-hidden border-2 border-primary/20">
-                            <img
-                                src="/teacher-mascot.jpg"
-                                alt="AI Sathi Teacher"
-                                className="w-full h-full object-cover"
-                            />
-                        </div>
-                        <div className="space-y-1">
-                            <h3 className="font-semibold text-foreground">{startClass5.text}</h3>
-                            <p className="text-sm text-muted-foreground leading-relaxed">
-                                {infoText.text}
-                            </p>
-                        </div>
-                    </div>
+                {/* Info Text */}
+                <div className="text-center mt-12">
+                    <p className="text-sm text-gray-500">
+                        📚 {getText("info")}
+                    </p>
                 </div>
-            </div>
-
-            {/* Footer */}
-            <div className="px-6 pb-8 text-center animate-in fade-in duration-700 delay-1200">
-                <p className="text-xs text-muted-foreground">
-                    {footer.text}
-                </p>
             </div>
         </div>
     );

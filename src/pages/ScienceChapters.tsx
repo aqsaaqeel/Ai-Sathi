@@ -1,56 +1,33 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FlaskConical, Leaf, CloudSun, HeartPulse } from "lucide-react";
-import { SubjectCard } from "@/components/SubjectCard";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, FlaskConical, Play, Clock, BookOpen } from "lucide-react";
 import LanguageSelector from "@/components/LanguageSelector";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { scienceChapters } from "@/data/lessonContent";
 
 const ScienceChapters = () => {
     const navigate = useNavigate();
-    const { aiPipeline, t } = useLanguage();
+    const { language } = useLanguage();
 
-    const chapters = [
-        {
-            id: 'human-body',
-            title: t("The Human Body"),
-            description: t("Learn about body parts and their functions"),
-            icon: HeartPulse,
-            color: "primary" as const,
-        },
-        {
-            id: 'plants',
-            title: t("Plants Around Us"),
-            description: t("Understand plant parts and their importance"),
-            icon: Leaf,
-            color: "learning" as const,
-        },
-        {
-            id: 'animals',
-            title: t("Animal Life"),
-            description: t("Discover different animals and their habitats"),
-            icon: FlaskConical, // Using Flask as a generic science icon for now, or maybe something else?
-            color: "accent" as const,
-        },
-        {
-            id: 'weather',
-            title: t("Weather and Climate"),
-            description: t("Explore weather patterns and seasons"),
-            icon: CloudSun,
-            color: "primary" as const,
-        }
-    ];
-
-    const handleChapterClick = (chapterId: string) => {
-        // Navigate to chat with the selected chapter context
-        navigate("/chat", {
+    const handleLessonClick = (chapterId: string, lessonId: string) => {
+        navigate("/learn", {
             state: {
-                pipeline: aiPipeline,
-                context: {
-                    subject: 'Science',
-                    chapter: chapterId
-                }
+                subject: "science",
+                chapterId,
+                lessonId,
             }
         });
+    };
+
+    const getDifficultyColor = (difficulty: string) => {
+        switch (difficulty) {
+            case "easy": return "bg-green-100 text-green-700";
+            case "medium": return "bg-yellow-100 text-yellow-700";
+            case "hard": return "bg-red-100 text-red-700";
+            default: return "bg-gray-100 text-gray-700";
+        }
     };
 
     return (
@@ -64,41 +41,99 @@ const ScienceChapters = () => {
                     className="rounded-full hover:bg-muted"
                 >
                     <ArrowLeft className="w-4 h-4 mr-2" />
-                    {t("Back")}
+                    {language === "hi" ? "वापस" : language === "kn" ? "ಹಿಂದೆ" : "Back"}
                 </Button>
                 <LanguageSelector />
             </div>
 
             {/* Header Section */}
-            <div className="px-6 pt-8 pb-8 text-center space-y-4">
-                <div className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 flex items-center justify-center shadow-[var(--shadow-medium)] overflow-hidden border-2 border-blue-500/20">
+            <div className="px-6 pt-8 pb-6 text-center space-y-4">
+                <div className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 flex items-center justify-center shadow-lg overflow-hidden border-2 border-blue-500/20">
                     <FlaskConical className="w-10 h-10 text-blue-600" />
                 </div>
 
                 <div className="space-y-2">
                     <h1 className="text-3xl font-bold text-foreground">
-                        {t("Science Chapters")}
+                        Science Lessons
                     </h1>
                     <p className="text-muted-foreground max-w-md mx-auto">
-                        {t("Class 5 • NCERT")}
+                        Class 5 • NCERT | Learn with Cards
                     </p>
                 </div>
             </div>
 
-            {/* Chapters Grid */}
-            <div className="px-6 pb-8 space-y-4">
-                <div className="grid gap-4">
-                    {chapters.map((chapter) => (
-                        <SubjectCard
-                            key={chapter.id}
-                            title={chapter.title}
-                            description={chapter.description}
-                            icon={chapter.icon}
-                            color={chapter.color}
-                            onClick={() => handleChapterClick(chapter.id)}
-                        />
-                    ))}
-                </div>
+            {/* Chapters and Lessons */}
+            <div className="px-6 pb-8 space-y-8">
+                {scienceChapters.map((chapter) => (
+                    <div key={chapter.id} className="space-y-4">
+                        {/* Chapter Header */}
+                        <div className="flex items-center gap-3">
+                            <div className="w-1 h-8 bg-blue-500 rounded-full"></div>
+                            <div>
+                                <h2 className="text-xl font-bold">
+                                    {language === "hi" ? chapter.titleHindi : chapter.title}
+                                </h2>
+                                <p className="text-sm text-muted-foreground">
+                                    {chapter.lessons.length} {chapter.lessons.length === 1 ? "Lesson" : "Lessons"}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Lesson Cards */}
+                        <div className="grid gap-4">
+                            {chapter.lessons.map((lesson, index) => (
+                                <Card
+                                    key={lesson.id}
+                                    className="p-5 hover:shadow-lg transition-all cursor-pointer border-l-4 border-l-blue-500"
+                                    onClick={() => handleLessonClick(chapter.id, lesson.id)}
+                                >
+                                    <div className="flex items-start gap-4">
+                                        {/* Lesson Number Badge */}
+                                        <div className="flex-shrink-0">
+                                            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                                                <span className="text-lg font-bold text-blue-600">
+                                                    {index + 1}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Lesson Details */}
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="text-lg font-semibold mb-1">
+                                                {language === "hi" ? lesson.titleHindi : lesson.title}
+                                            </h3>
+                                            <p className="text-sm text-muted-foreground mb-3">
+                                                {lesson.description}
+                                            </p>
+
+                                            {/* Lesson Metadata */}
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <Badge className={getDifficultyColor(lesson.difficulty)}>
+                                                    {lesson.difficulty}
+                                                </Badge>
+                                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                                    <Clock className="w-3 h-3" />
+                                                    <span>{lesson.duration}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                                    <BookOpen className="w-3 h-3" />
+                                                    <span>{lesson.cards.length} cards</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Play Button */}
+                                        <div className="flex-shrink-0">
+                                            <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center hover:bg-blue-600 transition-colors">
+                                                <Play className="w-5 h-5 text-white fill-white ml-0.5" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </Card>
+                            ))}
+                        </div>
+                    </div>
+                ))}
             </div>
         </div>
     );

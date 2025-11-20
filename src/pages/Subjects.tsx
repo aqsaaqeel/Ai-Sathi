@@ -1,17 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { SubjectCard } from "@/components/SubjectCard";
-import { AIModelLoader } from "@/components/AIModelLoader";
 import { Calculator, Book, Globe, Wifi, WifiOff, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import LanguageSelector from "@/components/LanguageSelector";
-import { useLanguage } from "@/contexts/LanguageContext";
 
 const Subjects = () => {
   const navigate = useNavigate();
-  const [isModelLoaded, setIsModelLoaded] = useState(false);
-  const { setAiPipeline, aiPipeline } = useLanguage();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {
@@ -39,13 +35,6 @@ const Subjects = () => {
       window.removeEventListener("offline", handleOffline);
     };
   }, []);
-
-  if (!isModelLoaded) {
-    return <AIModelLoader onModelLoaded={(pipelines) => {
-      setAiPipeline(pipelines);
-      setIsModelLoaded(true);
-    }} />;
-  }
 
   const subjects = [
     {
@@ -134,9 +123,7 @@ const Subjects = () => {
               icon={subject.icon}
               color={subject.color}
               onClick={() => {
-                if (subject.route === "/chat") {
-                  navigate(subject.route, { state: { pipeline: aiPipeline } });
-                } else if (subject.route === "/science-chapters" || subject.route === "/maths-chapters") {
+                if (subject.route === "/science-chapters" || subject.route === "/maths-chapters" || subject.route === "/chat") {
                   navigate(subject.route);
                 } else {
                   toast.info("Coming soon! Start with Maths for now.");
