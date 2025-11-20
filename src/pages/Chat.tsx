@@ -2,14 +2,10 @@ import { useState, useRef, useEffect } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Send, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
+import { ArrowLeft, Send } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
-import LanguageSelector from "@/components/LanguageSelector";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useVoiceInput } from "@/hooks/useVoiceInput";
-import { useTextToSpeech } from "@/hooks/useTextToSpeech";
-import { chapterContent } from "@/data/chapterContent";
 
 interface Message {
   role: "user" | "assistant";
@@ -18,28 +14,34 @@ interface Message {
 
 const Chat = () => {
   const location = useLocation();
-  const locationPipeline = location.state?.pipeline;
-  const context = location.state?.context; // Get the context (subject, chapter)
-  const { aiPipeline: contextPipeline, language, translate } = useLanguage();
-  const aiPipeline = locationPipeline || contextPipeline;
   const navigate = useNavigate();
+  const { aiPipeline } = useLanguage();
+  
+  // Get models from context (primary source) or navigation state (fallback)
+  const pipelines = aiPipeline || location.state?.pipeline;
+  const mathModel = pipelines?.mathModel;
+  const textModel = pipelines?.textModel;
+  
+  // Debug logging
+  useEffect(() => {
+    console.log("🔍 Chat Component - Debug Info:");
+    console.log("aiPipeline from context:", aiPipeline);
+    console.log("pipeline from location.state:", location.state?.pipeline);
+    console.log("Final pipelines object:", pipelines);
+    console.log("Math Model loaded:", mathModel ? "✅" : "❌");
+    console.log("Text Model loaded:", textModel ? "✅" : "❌");
+  }, [aiPipeline, location.state, pipelines, mathModel, textModel]);
+  
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Hello! I'm your AI tutor. Ask me anything about your lesson or share your doubts!",
+      content: "नमस्ते! Hello! I'm your AI Sathi. I can help you learn Grade 5 Maths. Ask me anything about addition, subtraction, multiplication, division, or fractions! 😊",
     },
   ]);
   const [input, setInput] = useState("");
-  const [placeholder, setPlaceholder] = useState("Type your question...");
   const [isLoading, setIsLoading] = useState(false);
-  const [autoSpeak, setAutoSpeak] = useState(true);
+  const [currentModel, setCurrentModel] = useState<"math" | "text" | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Voice input hook
-  const voiceInput = useVoiceInput(language);
-
-  // Text-to-speech hook
-  const tts = useTextToSpeech(language);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -49,164 +51,173 @@ const Chat = () => {
     scrollToBottom();
   }, [messages]);
 
-  // Update welcome message and placeholder when language changes OR context changes
-  useEffect(() => {
-    const updateTranslations = async () => {
-      let welcomeText = "Hello! I'm your AI tutor. Ask me anything about your lesson or share your doubts!";
-
-      // Customize welcome message if context exists
-      if (context?.subject && context?.chapter) {
-        const subjectContent = (chapterContent as any)[context.subject];
-        if (subjectContent && subjectContent[context.chapter]) {
-          welcomeText = `Hello! I'm your AI tutor for ${context.subject}. I'm ready to help you with the chapter on this topic. Ask me anything!`;
-        }
-      }
-
-      const placeholderText = "Type your question...";
-
-      const translatedWelcome = await translate(welcomeText);
-      const translatedPlaceholder = await translate(placeholderText);
-
-      setPlaceholder(translatedPlaceholder);
-
-      // Update welcome message if it's the first message
-      setMessages(prev => {
-        if (prev.length > 0 && prev[0].role === 'assistant') {
-          const newMessages = [...prev];
-          newMessages[0] = { ...newMessages[0], content: translatedWelcome };
-          return newMessages;
-        }
-        return prev;
-      });
-    };
-
-    updateTranslations();
-  }, [language, translate, context]);
+  // Determine if question is math-related
+  const isMathQuestion = (message: string): boolean => {
+    const lowerMessage = message.toLowerCase();
+    
+    // Check for math operations or numbers
+    if (/\d+\s*[\+\-\*×÷\/]\s*\d+/.test(message)) return true;
+    
+    // Check for math keywords
+    const mathKeywords = [
+      'add', 'addition', 'plus', 'sum', 'जोड़', 'total',
+      'subtract', 'subtraction', 'minus', 'difference', 'घटा', 'take away',
+      'multiply', 'multiplication', 'times', 'product', 'गुणा',
+      'divide', 'division', 'भाग', 'quotient',
+      'fraction', 'भिन्न', 'half', 'quarter', 'third',
+      'calculate', 'solve', 'answer', 'equal', '=',
+      'number', 'digit', 'place value', 'tens', 'hundreds', 'ones',
+      'greater', 'less', 'compare', 'bigger', 'smaller'
+    ];
+    
+    return mathKeywords.some(keyword => lowerMessage.includes(keyword));
+  };
 
   const getAIResponse = async (userMessage: string): Promise<string> => {
-    // If AI pipeline is available, use it for intelligent responses
-    if (aiPipeline) {
+    const isMath = isMathQuestion(userMessage);
+    
+    // If AI models are available, use them for intelligent responses
+    if (mathModel && textModel) {
       try {
-        let contextText = "";
-        if (context?.subject && context?.chapter) {
-          const subjectData = (chapterContent as any)[context.subject];
-          if (subjectData) {
-            contextText = subjectData[context.chapter] || "";
+        if (isMath) {
+          // Use Math Model (Flan-T5) for calculations and math problems
+          setCurrentModel("math");
+          console.log("🔢 Using MATH model for:", userMessage);
+          
+          const prompt = `Solve this math problem for a Grade 5 student. Explain step-by-step in simple language.
+
+Question: ${userMessage}
+
+Answer:`;
+
+          const result = await mathModel(prompt, {
+            max_new_tokens: 150,
+            temperature: 0.3,
+            do_sample: false,
+          });
+          
+          return (result as any)[0].generated_text || "I'm having trouble with that calculation. Can you rephrase?";
+          
+        } else {
+          // Use Text Model (TinyLlama) for explanations and conversations
+          setCurrentModel("text");
+          console.log("💬 Using TEXT model for:", userMessage);
+          
+          // Build conversation context from recent messages (last 3 exchanges)
+          const recentMessages = messages.slice(-6); // Last 3 user + 3 assistant messages
+          let conversationContext = "";
+          
+          recentMessages.forEach(msg => {
+            if (msg.role === "user") {
+              conversationContext += `Student: ${msg.content}\n`;
+            } else {
+              conversationContext += `Teacher: ${msg.content}\n`;
+            }
+          });
+          
+          // Format for Qwen chat with conversation context
+          const prompt = `<|im_start|>system
+You are AI Sathi, a friendly and patient tutor for Grade 5 NCERT Maths in India. 
+- Answer in simple language that a 10-year-old can understand
+- Use both English and Hindi terms when helpful
+- Keep responses short (3-5 sentences), encouraging, and grade-appropriate
+- When student asks "yes" or "explain", provide the explanation they're asking for
+- Use examples from daily life (rotis, rupees, cricket, etc)
+- Always be encouraging and supportive<|im_end|>
+<|im_start|>user
+Previous conversation:
+${conversationContext}
+
+Current question: ${userMessage}<|im_end|>
+<|im_start|>assistant
+`;
+
+          const result = await textModel(prompt, {
+            max_new_tokens: 250,
+            temperature: 0.7,
+            do_sample: true,
+            top_p: 0.9,
+          });
+          
+          // Extract just the assistant's response
+          let response = (result as any)[0].generated_text || "";
+          response = response.replace(prompt, "").trim();
+          response = response.replace(/<\|im_end\|>/g, "").trim();
+          response = response.replace(/<\|im_start\|>/g, "").trim();
+          
+          // If response is too short or empty, provide a better fallback
+          if (!response || response.length < 20) {
+            return "I'm here to help! Could you please be more specific about what you'd like to learn? For example, you can ask me about addition, subtraction, multiplication, division, or fractions! 😊";
           }
+          
+          return response;
         }
-
-        // Debug: Print retrieved chunk with detailed information
-        console.log("=== RAG DEBUG INFO ===");
-        console.log("Subject:", context?.subject);
-        console.log("Chapter:", context?.chapter);
-        console.log("Retrieved Chunk Length:", contextText?.length || 0);
-        console.log("Retrieved Chunk Preview:", contextText ? contextText.substring(0, 200) + "..." : "EMPTY");
-        console.log("Full Retrieved Chunk:", contextText);
-        console.log("======================");
-
-        const systemPrompts = {
-          en: `You are an AI tutor for NCERT Class V ${context?.subject || 'Maths and Science'}.
-
-CRITICAL RULES - YOU MUST FOLLOW THESE STRICTLY:
-1. Answer ONLY using information from the Context below
-2. If the Context does not contain the answer, you MUST say: "I don't have information about that in this chapter. Can you ask me something else about this topic?"
-3. NEVER use any knowledge outside the provided Context
-4. NEVER make up information or use general knowledge
-
-Context (NCERT Class V Curriculum):
-${contextText || "No specific chapter context available."}
-
-TEACHING STYLE:
-- Use simple words that a 10-year-old can understand
-- Be warm, friendly, and encouraging
-- Break down complex ideas into small, easy steps
-- Use examples from everyday life when explaining
-- Praise the student for asking questions
-- If explaining a concept, ask if they understood at the end`,
-
-          hi: `आप NCERT कक्षा V ${context?.subject || 'गणित और विज्ञान'} के लिए एक AI शिक्षक हैं।
-
-महत्वपूर्ण नियम - आपको इनका सख्ती से पालन करना होगा:
-1. केवल नीचे दिए गए संदर्भ की जानकारी का उपयोग करके उत्तर दें
-2. यदि संदर्भ में उत्तर नहीं है, तो आपको कहना होगा: "मेरे पास इस अध्याय में इसके बारे में जानकारी नहीं है। क्या आप मुझसे इस विषय के बारे में कुछ और पूछ सकते हैं?"
-3. प्रदान किए गए संदर्भ के बाहर किसी भी ज्ञान का उपयोग न करें
-4. कभी भी जानकारी न बनाएं या सामान्य ज्ञान का उपयोग न करें
-
-संदर्भ (NCERT कक्षा V पाठ्यक्रम):
-${contextText || "कोई विशिष्ट अध्याय संदर्भ उपलब्ध नहीं है।"}
-
-शिक्षण शैली:
-- सरल शब्दों का प्रयोग करें जो 10 साल का बच्चा समझ सके
-- गर्मजोशी, मित्रवत और प्रोत्साहक बनें
-- जटिल विचारों को छोटे, आसान चरणों में तोड़ें
-- समझाते समय रोजमर्रा की जिंदगी के उदाहरण दें
-- प्रश्न पूछने के लिए छात्र की प्रशंसा करें`,
-
-          kn: `ನೀವು NCERT ತರಗತಿ V ${context?.subject || 'ಗಣಿತ ಮತ್ತು ವಿಜ್ಞಾನ'} ಗಾಗಿ AI ಶಿಕ್ಷಕರು.
-
-ಮುಖ್ಯ ನಿಯಮಗಳು - ನೀವು ಇವುಗಳನ್ನು ಕಟ್ಟುನಿಟ್ಟಾಗಿ ಅನುಸರಿಸಬೇಕು:
-1. ಕೆಳಗಿನ ಸಂದರ್ಭದ ಮಾಹಿತಿಯನ್ನು ಮಾತ್ರ ಬಳಸಿಕೊಂಡು ಉತ್ತರಿಸಿ
-2. ಸಂದರ್ಭದಲ್ಲಿ ಉತ್ತರವಿಲ್ಲದಿದ್ದರೆ, ನೀವು ಹೇಳಬೇಕು: "ಈ ಅಧ್ಯಾಯದಲ್ಲಿ ಅದರ ಬಗ್ಗೆ ನನ್ನ ಬಳಿ ಮಾಹಿತಿ ಇಲ್ಲ. ಈ ವಿಷಯದ ಬಗ್ಗೆ ನೀವು ನನಗೆ ಬೇರೆ ಏನಾದರೂ ಕೇಳಬಹುದೇ?"
-3. ಒದಗಿಸಿದ ಸಂದರ್ಭದ ಹೊರಗಿನ ಯಾವುದೇ ಜ್ಞಾನವನ್ನು ಬಳಸಬೇಡಿ
-4. ಎಂದಿಗೂ ಮಾಹಿತಿಯನ್ನು ರಚಿಸಬೇಡಿ ಅಥವಾ ಸಾಮಾನ್ಯ ಜ್ಞಾನವನ್ನು ಬಳಸಬೇಡಿ
-
-ಸಂದರ್ಭ (NCERT ತರಗತಿ V ಪಠ್ಯಕ್ರಮ):
-${contextText || "ಯಾವುದೇ ನಿರ್ದಿಷ್ಟ ಅಧ್ಯಾಯ ಸಂದರ್ಭ ಲಭ್ಯವಿಲ್ಲ."}
-
-ಬೋಧನಾ ಶೈಲಿ:
-- 10 ವರ್ಷದ ಮಗು ಅರ್ಥಮಾಡಿಕೊಳ್ಳಬಹುದಾದ ಸರಳ ಪದಗಳನ್ನು ಬಳಸಿ
-- ಬೆಚ್ಚಗಿನ, ಸ್ನೇಹಪರ ಮತ್ತು ಪ್ರೋತ್ಸಾಹಕರಾಗಿರಿ
-- ಸಂಕೀರ್ಣ ವಿಚಾರಗಳನ್ನು ಸಣ್ಣ, ಸುಲಭ ಹಂತಗಳಾಗಿ ವಿಭಜಿಸಿ
-- ವಿವರಿಸುವಾಗ ದೈನಂದಿನ ಜೀವನದ ಉದಾಹರಣೆಗಳನ್ನು ಬಳಸಿ
-- ಪ್ರಶ್ನೆಗಳನ್ನು ಕೇಳಿದ್ದಕ್ಕಾಗಿ ವಿದ್ಯಾರ್ಥಿಯನ್ನು ಹೊಗಳಿ`
-        };
-
-        const messages = [
-          { role: "system", content: systemPrompts[language] || systemPrompts['en'] },
-          { role: "user", content: userMessage }
-        ];
-
-        const result = await aiPipeline.chat.completions.create({
-          messages,
-          temperature: 0.7,
-          max_tokens: 150,
-        });
-
-        return result.choices[0].message.content || "I'm having trouble understanding. Can you rephrase that?";
       } catch (error) {
         console.error("AI generation error:", error);
+        setCurrentModel(null);
         // Fall through to rule-based responses
       }
     }
-
-    // Fallback: Rule-based responses
+    
+    // Fallback: Rule-based responses (when models aren't loaded)
     const lowerMessage = userMessage.toLowerCase();
-
+    
+    // Check if asking for explanation after a calculation
+    if ((lowerMessage === "yes" || lowerMessage.includes("explain") || lowerMessage.includes("how")) && messages.length >= 2) {
+      const lastAssistant = messages[messages.length - 1];
+      if (lastAssistant.role === "assistant" && lastAssistant.content.includes("answer is:")) {
+        // Extract the calculation from previous messages
+        const lastUser = messages[messages.length - 2];
+        const calcMatch = lastUser.content.match(/(\d+)\s*([\+\-\*\/×÷])\s*(\d+)/);
+        if (calcMatch) {
+          const [, a, op, b] = calcMatch;
+          const operations = {
+            '+': { name: 'Addition', hindi: 'जोड़', explain: `we put ${a} and ${b} together` },
+            '-': { name: 'Subtraction', hindi: 'घटाना', explain: `we take away ${b} from ${a}` },
+            '*': { name: 'Multiplication', hindi: 'गुणा', explain: `we add ${a}, ${b} times` },
+            '×': { name: 'Multiplication', hindi: 'गुणा', explain: `we add ${a}, ${b} times` },
+            '/': { name: 'Division', hindi: 'भाग', explain: `we split ${a} into ${b} equal parts` },
+            '÷': { name: 'Division', hindi: 'भाग', explain: `we split ${a} into ${b} equal parts` },
+          };
+          const opInfo = operations[op as keyof typeof operations];
+          if (opInfo) {
+            return `Great! Let me explain how we solve ${a} ${op} ${b}:\n\n${opInfo.name} (${opInfo.hindi}) means ${opInfo.explain}.\n\n${lastUser.content} = ${eval(`${a}${op.replace('×','*').replace('÷','/')}${b}`)}\n\nDo you understand now? Feel free to ask more questions! 😊`;
+          }
+        }
+      }
+    }
+    
     if (lowerMessage.includes("add") || lowerMessage.includes("plus") || lowerMessage.includes("जोड़")) {
       return "Great! Let's learn addition (जोड़ना).\n\nWhen we add numbers, we put them together. For example:\n5 + 3 = 8\n\nTry this: What is 12 + 7?";
     }
-
+    
     if (lowerMessage.includes("multiply") || lowerMessage.includes("times") || lowerMessage.includes("गुणा")) {
       return "Wonderful! Multiplication (गुणा) is repeated addition.\n\nFor example: 4 × 3 means adding 4 three times:\n4 + 4 + 4 = 12\n\nSo 4 × 3 = 12\n\nTry: What is 5 × 6?";
     }
-
+    
     if (lowerMessage.includes("fraction") || lowerMessage.includes("half") || lowerMessage.includes("भिन्न")) {
       return "Fractions (भिन्न) show parts of a whole!\n\n1/2 means one part out of two equal parts (half)\n1/4 means one part out of four equal parts (quarter)\n\nIf you have 1 roti and cut it into 4 equal pieces, each piece is 1/4 of the roti! 🍞\n\nWhat fraction questions do you have?";
     }
-
-    if (/\d+\s*[\+\-\*\/]\s*\d+/.test(lowerMessage)) {
+    
+    if (/\d+\s*[\+\-\*\/×÷]\s*\d+/.test(userMessage)) {
       try {
-        const result = eval(lowerMessage.replace(/[^\d\+\-\*\/\(\)]/g, ''));
+        const cleanExpr = userMessage.replace(/[^\d\+\-\*\/\(\)×÷]/g, '').replace(/×/g, '*').replace(/÷/g, '/');
+        const result = eval(cleanExpr);
         return `Great question! Let me help you solve this step by step.\n\nThe answer is: ${result}\n\nWould you like me to explain how we got this answer?`;
       } catch {
         return "I can help you with that! Can you write it in this format: number + number (like 5 + 3)?";
       }
     }
-
+    
     if (lowerMessage.includes("help") || lowerMessage.includes("मदद")) {
       return "I'm here to help you learn! 🌟\n\nI can teach you:\n• Addition (जोड़ना)\n• Subtraction (घटाना)\n• Multiplication (गुणा)\n• Division (भाग)\n• Fractions (भिन्न)\n\nJust ask me about any topic or give me a math problem to solve!";
     }
-
+    
+    // Check for general questions like "yes", "no", "ok", etc.
+    if (/^(yes|yeah|ok|okay|sure|no|nah)$/i.test(lowerMessage.trim())) {
+      return "I'm here to help! What would you like to learn about? You can ask me:\n• Math problems (like 5 + 3)\n• Concepts (like 'what is multiplication?')\n• Explanations (like 'explain fractions')\n\nGo ahead, I'm listening! 😊";
+    }
+    
     return "That's a great question! I can help you with Grade 5 Maths topics like addition, subtraction, multiplication, division, and fractions. What would you like to learn about? 📚";
   };
 
@@ -221,15 +232,10 @@ ${contextText || "ಯಾವುದೇ ನಿರ್ದಿಷ್ಟ ಅಧ್ಯಾ
     try {
       // Simulate processing delay
       await new Promise(resolve => setTimeout(resolve, 800));
-
+      
       const aiResponse = await getAIResponse(userMessage.content);
       const assistantMessage: Message = { role: "assistant", content: aiResponse };
       setMessages((prev) => [...prev, assistantMessage]);
-
-      // Speak the AI response if autoSpeak is enabled
-      if (autoSpeak && tts.isSupported) {
-        setTimeout(() => tts.speak(aiResponse), 300);
-      }
     } catch (error) {
       console.error("Error getting response:", error);
       toast.error("Sorry, I had trouble understanding. Please try again!");
@@ -245,29 +251,6 @@ ${contextText || "ಯಾವುದೇ ನಿರ್ದಿಷ್ಟ ಅಧ್ಯಾ
     }
   };
 
-  // Effect to handle voice input transcript
-  useEffect(() => {
-    if (voiceInput.transcript && !voiceInput.isProcessing) {
-      setInput(voiceInput.transcript);
-      voiceInput.clearTranscript();
-    }
-  }, [voiceInput.transcript, voiceInput.isProcessing]);
-
-  // Effect to show voice input errors
-  useEffect(() => {
-    if (voiceInput.error) {
-      toast.error(voiceInput.error);
-    }
-  }, [voiceInput.error]);
-
-  const handleVoiceInput = () => {
-    if (voiceInput.isRecording) {
-      voiceInput.stopRecording();
-    } else {
-      voiceInput.startRecording();
-    }
-  };
-
   return (
     <div className="flex flex-col h-screen bg-gradient-to-b from-background to-primary/5">
       {/* Header */}
@@ -275,7 +258,7 @@ ${contextText || "ಯಾವುದೇ ನಿರ್ದಿಷ್ಟ ಅಧ್ಯಾ
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate("/subjects")}
+          onClick={() => navigate("/")}
           className="rounded-full"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -284,19 +267,35 @@ ${contextText || "ಯಾವುದೇ ನಿರ್ದಿಷ್ಟ ಅಧ್ಯಾ
           <h1 className="font-semibold text-foreground">AI Sathi</h1>
           <p className="text-xs text-success flex items-center gap-1">
             <span className="w-2 h-2 bg-success rounded-full animate-pulse"></span>
-            {aiPipeline ? "AI Ready (Offline)" : "Basic Mode"}
+            {mathModel && textModel ? (
+              currentModel === "math" ? "🔢 Math Mode (Offline)" : 
+              currentModel === "text" ? "💬 Explain Mode (Offline)" : 
+              "AI Ready (Offline)"
+            ) : "Basic Mode"}
           </p>
-          {context?.subject && context?.chapter && (
-            <p className="text-xs text-primary font-medium mt-0.5">
-              📚 {context.subject} - {context.chapter}
-            </p>
-          )}
         </div>
-        <LanguageSelector />
       </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {/* Debug Info - Remove in production */}
+        {!mathModel || !textModel ? (
+          <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl">
+            <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-2">⚠️ AI Models Status:</p>
+            <p className="text-xs text-yellow-700 dark:text-yellow-300">
+              Math Model: {mathModel ? "✅ Loaded" : "❌ Not Loaded"}<br/>
+              Text Model: {textModel ? "✅ Loaded" : "❌ Not Loaded"}<br/>
+              <span className="mt-1 block italic">Using rule-based responses for now.</span>
+            </p>
+          </div>
+        ) : (
+          <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-xl">
+            <p className="text-xs text-green-700 dark:text-green-300">
+              ✅ Both AI models loaded successfully! Fully offline mode active.
+            </p>
+          </div>
+        )}
+        
         {messages.map((message, index) => (
           <ChatMessage key={index} role={message.role} content={message.content} />
         ))}
@@ -312,70 +311,15 @@ ${contextText || "ಯಾವುದೇ ನಿರ್ದಿಷ್ಟ ಅಧ್ಯಾ
 
       {/* Input */}
       <div className="bg-card border-t border-border p-4">
-        {/* Voice input status */}
-        {(voiceInput.isRecording || voiceInput.isProcessing) && (
-          <div className="mb-3 p-3 bg-primary/10 rounded-xl border border-primary/20">
-            <div className="flex items-center gap-2 text-sm text-primary">
-              {voiceInput.isRecording && (
-                <>
-                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-                  <span>Recording... Tap mic to stop</span>
-                </>
-              )}
-              {voiceInput.isProcessing && (
-                <>
-                  <div className="w-2 h-2 bg-primary rounded-full animate-spin"></div>
-                  <span>Transcribing speech...</span>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-
         <div className="flex gap-2">
-          {/* Voice Input Button */}
-          <Button
-            onClick={handleVoiceInput}
-            disabled={isLoading || voiceInput.isProcessing}
-            size="icon"
-            variant={voiceInput.isRecording ? "default" : "outline"}
-            className={`h-[60px] w-[60px] rounded-2xl transition-all ${voiceInput.isRecording
-              ? 'bg-destructive hover:bg-destructive/90 animate-pulse'
-              : 'hover:bg-primary/10'
-              }`}
-          >
-            {voiceInput.isRecording ? (
-              <MicOff className="w-5 h-5" />
-            ) : (
-              <Mic className="w-5 h-5" />
-            )}
-          </Button>
-
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder={placeholder}
+            placeholder="Ask me anything about maths..."
             className="min-h-[60px] max-h-[120px] resize-none rounded-2xl"
-            disabled={isLoading || voiceInput.isRecording}
+            disabled={isLoading}
           />
-
-          {/* TTS Toggle Button */}
-          <Button
-            onClick={() => setAutoSpeak(!autoSpeak)}
-            size="icon"
-            variant="outline"
-            className={`h-[60px] w-[60px] rounded-2xl transition-all ${autoSpeak ? 'bg-primary/10 border-primary/20' : ''
-              }`}
-            title={autoSpeak ? "Auto-speak enabled" : "Auto-speak disabled"}
-          >
-            {autoSpeak ? (
-              <Volume2 className="w-5 h-5 text-primary" />
-            ) : (
-              <VolumeX className="w-5 h-5" />
-            )}
-          </Button>
-
           <Button
             onClick={handleSend}
             disabled={!input.trim() || isLoading}

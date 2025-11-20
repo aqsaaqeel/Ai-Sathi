@@ -41,8 +41,8 @@ const Subjects = () => {
   }, []);
 
   if (!isModelLoaded) {
-    return <AIModelLoader onModelLoaded={(pipeline) => {
-      setAiPipeline(pipeline);
+    return <AIModelLoader onModelLoaded={(pipelines) => {
+      setAiPipeline(pipelines);
       setIsModelLoaded(true);
     }} />;
   }
