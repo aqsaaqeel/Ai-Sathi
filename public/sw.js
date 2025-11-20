@@ -6,6 +6,10 @@ const urlsToCache = [
   '/src/index.css'
 ];
 
+// Note: AI Model weights (Qwen 2.5) are cached automatically by the WebLLM engine 
+// using the Cache Storage API (cache name: webllm/...). 
+// We do not need to manually cache them here.
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)

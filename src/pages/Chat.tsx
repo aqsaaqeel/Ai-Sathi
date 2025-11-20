@@ -9,6 +9,7 @@ import LanguageSelector from "@/components/LanguageSelector";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { useTextToSpeech } from "@/hooks/useTextToSpeech";
+import { chapterContent } from "@/data/chapterContent";
 
 interface Message {
   role: "user" | "assistant";
@@ -18,6 +19,7 @@ interface Message {
 const Chat = () => {
   const location = useLocation();
   const locationPipeline = location.state?.pipeline;
+  const context = location.state?.context; // Get the context (subject, chapter)
   const { aiPipeline: contextPipeline, language, translate } = useLanguage();
   const aiPipeline = locationPipeline || contextPipeline;
   const navigate = useNavigate();
@@ -47,10 +49,19 @@ const Chat = () => {
     scrollToBottom();
   }, [messages]);
 
-  // Update welcome message and placeholder when language changes
+  // Update welcome message and placeholder when language changes OR context changes
   useEffect(() => {
     const updateTranslations = async () => {
-      const welcomeText = "Hello! I'm your AI tutor. Ask me anything about your lesson or share your doubts!";
+      let welcomeText = "Hello! I'm your AI tutor. Ask me anything about your lesson or share your doubts!";
+
+      // Customize welcome message if context exists
+      if (context?.subject && context?.chapter) {
+        const subjectContent = (chapterContent as any)[context.subject];
+        if (subjectContent && subjectContent[context.chapter]) {
+          welcomeText = `Hello! I'm your AI tutor for ${context.subject}. I'm ready to help you with the chapter on this topic. Ask me anything!`;
+        }
+      }
+
       const placeholderText = "Type your question...";
 
       const translatedWelcome = await translate(welcomeText);
@@ -70,28 +81,98 @@ const Chat = () => {
     };
 
     updateTranslations();
-  }, [language, translate]);
+  }, [language, translate, context]);
 
   const getAIResponse = async (userMessage: string): Promise<string> => {
     // If AI pipeline is available, use it for intelligent responses
     if (aiPipeline) {
       try {
-        const prompt = `You are AI Sathi, a helpful tutor for Grade 5 NCERT Maths in India. 
-Answer in simple language, using both English and Hindi terms when helpful.
-Focus on: addition (जोड़ना), subtraction (घटाना), multiplication (गुणा), division (भाग), and fractions (भिन्न).
-Keep responses short, encouraging, and grade-appropriate.
+        let contextText = "";
+        if (context?.subject && context?.chapter) {
+          const subjectData = (chapterContent as any)[context.subject];
+          if (subjectData) {
+            contextText = subjectData[context.chapter] || "";
+          }
+        }
 
-Student question: ${userMessage}
+        // Debug: Print retrieved chunk with detailed information
+        console.log("=== RAG DEBUG INFO ===");
+        console.log("Subject:", context?.subject);
+        console.log("Chapter:", context?.chapter);
+        console.log("Retrieved Chunk Length:", contextText?.length || 0);
+        console.log("Retrieved Chunk Preview:", contextText ? contextText.substring(0, 200) + "..." : "EMPTY");
+        console.log("Full Retrieved Chunk:", contextText);
+        console.log("======================");
 
-Answer:`;
+        const systemPrompts = {
+          en: `You are an AI tutor for NCERT Class V ${context?.subject || 'Maths and Science'}.
 
-        const result = await aiPipeline(prompt, {
-          max_new_tokens: 150,
+CRITICAL RULES - YOU MUST FOLLOW THESE STRICTLY:
+1. Answer ONLY using information from the Context below
+2. If the Context does not contain the answer, you MUST say: "I don't have information about that in this chapter. Can you ask me something else about this topic?"
+3. NEVER use any knowledge outside the provided Context
+4. NEVER make up information or use general knowledge
+
+Context (NCERT Class V Curriculum):
+${contextText || "No specific chapter context available."}
+
+TEACHING STYLE:
+- Use simple words that a 10-year-old can understand
+- Be warm, friendly, and encouraging
+- Break down complex ideas into small, easy steps
+- Use examples from everyday life when explaining
+- Praise the student for asking questions
+- If explaining a concept, ask if they understood at the end`,
+
+          hi: `आप NCERT कक्षा V ${context?.subject || 'गणित और विज्ञान'} के लिए एक AI शिक्षक हैं।
+
+महत्वपूर्ण नियम - आपको इनका सख्ती से पालन करना होगा:
+1. केवल नीचे दिए गए संदर्भ की जानकारी का उपयोग करके उत्तर दें
+2. यदि संदर्भ में उत्तर नहीं है, तो आपको कहना होगा: "मेरे पास इस अध्याय में इसके बारे में जानकारी नहीं है। क्या आप मुझसे इस विषय के बारे में कुछ और पूछ सकते हैं?"
+3. प्रदान किए गए संदर्भ के बाहर किसी भी ज्ञान का उपयोग न करें
+4. कभी भी जानकारी न बनाएं या सामान्य ज्ञान का उपयोग न करें
+
+संदर्भ (NCERT कक्षा V पाठ्यक्रम):
+${contextText || "कोई विशिष्ट अध्याय संदर्भ उपलब्ध नहीं है।"}
+
+शिक्षण शैली:
+- सरल शब्दों का प्रयोग करें जो 10 साल का बच्चा समझ सके
+- गर्मजोशी, मित्रवत और प्रोत्साहक बनें
+- जटिल विचारों को छोटे, आसान चरणों में तोड़ें
+- समझाते समय रोजमर्रा की जिंदगी के उदाहरण दें
+- प्रश्न पूछने के लिए छात्र की प्रशंसा करें`,
+
+          kn: `ನೀವು NCERT ತರಗತಿ V ${context?.subject || 'ಗಣಿತ ಮತ್ತು ವಿಜ್ಞಾನ'} ಗಾಗಿ AI ಶಿಕ್ಷಕರು.
+
+ಮುಖ್ಯ ನಿಯಮಗಳು - ನೀವು ಇವುಗಳನ್ನು ಕಟ್ಟುನಿಟ್ಟಾಗಿ ಅನುಸರಿಸಬೇಕು:
+1. ಕೆಳಗಿನ ಸಂದರ್ಭದ ಮಾಹಿತಿಯನ್ನು ಮಾತ್ರ ಬಳಸಿಕೊಂಡು ಉತ್ತರಿಸಿ
+2. ಸಂದರ್ಭದಲ್ಲಿ ಉತ್ತರವಿಲ್ಲದಿದ್ದರೆ, ನೀವು ಹೇಳಬೇಕು: "ಈ ಅಧ್ಯಾಯದಲ್ಲಿ ಅದರ ಬಗ್ಗೆ ನನ್ನ ಬಳಿ ಮಾಹಿತಿ ಇಲ್ಲ. ಈ ವಿಷಯದ ಬಗ್ಗೆ ನೀವು ನನಗೆ ಬೇರೆ ಏನಾದರೂ ಕೇಳಬಹುದೇ?"
+3. ಒದಗಿಸಿದ ಸಂದರ್ಭದ ಹೊರಗಿನ ಯಾವುದೇ ಜ್ಞಾನವನ್ನು ಬಳಸಬೇಡಿ
+4. ಎಂದಿಗೂ ಮಾಹಿತಿಯನ್ನು ರಚಿಸಬೇಡಿ ಅಥವಾ ಸಾಮಾನ್ಯ ಜ್ಞಾನವನ್ನು ಬಳಸಬೇಡಿ
+
+ಸಂದರ್ಭ (NCERT ತರಗತಿ V ಪಠ್ಯಕ್ರಮ):
+${contextText || "ಯಾವುದೇ ನಿರ್ದಿಷ್ಟ ಅಧ್ಯಾಯ ಸಂದರ್ಭ ಲಭ್ಯವಿಲ್ಲ."}
+
+ಬೋಧನಾ ಶೈಲಿ:
+- 10 ವರ್ಷದ ಮಗು ಅರ್ಥಮಾಡಿಕೊಳ್ಳಬಹುದಾದ ಸರಳ ಪದಗಳನ್ನು ಬಳಸಿ
+- ಬೆಚ್ಚಗಿನ, ಸ್ನೇಹಪರ ಮತ್ತು ಪ್ರೋತ್ಸಾಹಕರಾಗಿರಿ
+- ಸಂಕೀರ್ಣ ವಿಚಾರಗಳನ್ನು ಸಣ್ಣ, ಸುಲಭ ಹಂತಗಳಾಗಿ ವಿಭಜಿಸಿ
+- ವಿವರಿಸುವಾಗ ದೈನಂದಿನ ಜೀವನದ ಉದಾಹರಣೆಗಳನ್ನು ಬಳಸಿ
+- ಪ್ರಶ್ನೆಗಳನ್ನು ಕೇಳಿದ್ದಕ್ಕಾಗಿ ವಿದ್ಯಾರ್ಥಿಯನ್ನು ಹೊಗಳಿ`
+        };
+
+        const messages = [
+          { role: "system", content: systemPrompts[language] || systemPrompts['en'] },
+          { role: "user", content: userMessage }
+        ];
+
+        const result = await aiPipeline.chat.completions.create({
+          messages,
           temperature: 0.7,
-          do_sample: true,
+          max_tokens: 150,
         });
 
-        return (result as any)[0].generated_text || "I'm having trouble understanding. Can you rephrase that?";
+        return result.choices[0].message.content || "I'm having trouble understanding. Can you rephrase that?";
       } catch (error) {
         console.error("AI generation error:", error);
         // Fall through to rule-based responses
@@ -205,6 +286,11 @@ Answer:`;
             <span className="w-2 h-2 bg-success rounded-full animate-pulse"></span>
             {aiPipeline ? "AI Ready (Offline)" : "Basic Mode"}
           </p>
+          {context?.subject && context?.chapter && (
+            <p className="text-xs text-primary font-medium mt-0.5">
+              📚 {context.subject} - {context.chapter}
+            </p>
+          )}
         </div>
         <LanguageSelector />
       </div>

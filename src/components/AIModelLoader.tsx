@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Progress } from "@/components/ui/progress";
 import { Loader2 } from "lucide-react";
-import { pipeline } from "@huggingface/transformers";
+import { CreateMLCEngine, MLCEngine } from "@mlc-ai/web-llm";
 
 interface AIModelLoaderProps {
-  onModelLoaded: (pipeline: any) => void;
+  onModelLoaded: (engine: MLCEngine | null) => void;
 }
 
 export const AIModelLoader = ({ onModelLoaded }: AIModelLoaderProps) => {
@@ -17,47 +17,28 @@ export const AIModelLoader = ({ onModelLoaded }: AIModelLoaderProps) => {
         setStatus("Checking GPU availability...");
         setProgress(10);
 
-        // Try WebGPU first, fallback to WASM
-        let device: "webgpu" | "wasm" = "wasm";
-        try {
-          if ("gpu" in navigator) {
-            await (navigator as any).gpu.requestAdapter();
-            device = "webgpu";
-            setStatus("WebGPU detected! Loading AI model...");
-          } else {
-            setStatus("Loading AI model (CPU mode)...");
-          }
-        } catch {
-          setStatus("Loading AI model (CPU mode)...");
+        // WebLLM requires WebGPU
+        if (!("gpu" in navigator)) {
+          throw new Error("WebGPU is not supported in this browser.");
         }
 
-        setProgress(25);
+        setStatus("Loading Qwen 2.5 Model (WebLLM)...");
+        setProgress(20);
 
-        // Load a small text generation model optimized for on-device use
-        // Using Flan-T5 Small (77M params) - good balance of size and capability
-        setStatus("Downloading model files...");
-        const generator = await pipeline(
-          "text2text-generation",
-          "Xenova/flan-t5-small",
-          {
-            device,
-            dtype: device === "webgpu" ? "fp32" : "fp32",
-            progress_callback: (progress: any) => {
-              if (progress.status === "progress" && progress.progress) {
-                setProgress(25 + (progress.progress * 0.6));
-              }
-            }
-          }
+        const initProgressCallback = (report: { text: string; progress: number }) => {
+          setStatus(report.text);
+          setProgress(20 + (report.progress * 80)); // Map 0-1 to 20-100
+        };
+
+        const engine = await CreateMLCEngine(
+          "Qwen/Qwen2.5-0.5B-Instruct-q4f16_1-MLC",
+          { initProgressCallback }
         );
 
-        setProgress(90);
-        setStatus("Initializing offline mode...");
-        await new Promise(resolve => setTimeout(resolve, 500));
-
         setProgress(100);
-        setStatus(`Ready! Running on ${device === "webgpu" ? "GPU" : "CPU"} 🚀`);
+        setStatus("Ready! Running on GPU 🚀");
 
-        setTimeout(() => onModelLoaded(generator), 300);
+        setTimeout(() => onModelLoaded(engine), 300);
       } catch (error) {
         console.error("Error loading model:", error);
         setStatus("Error loading model. Using fallback mode.");
