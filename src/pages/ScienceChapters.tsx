@@ -9,7 +9,7 @@ import { scienceChapters } from "@/data/lessonContent";
 
 const ScienceChapters = () => {
     const navigate = useNavigate();
-    const { language } = useLanguage();
+    const { language, t } = useLanguage();
 
     const handleLessonClick = (chapterId: string, lessonId: string) => {
         navigate("/learn", {
@@ -41,7 +41,7 @@ const ScienceChapters = () => {
                     className="rounded-full hover:bg-muted"
                 >
                     <ArrowLeft className="w-4 h-4 mr-2" />
-                    {language === "hi" ? "वापस" : language === "kn" ? "ಹಿಂದೆ" : "Back"}
+                    {t("Back")}
                 </Button>
                 <LanguageSelector />
             </div>
@@ -54,10 +54,10 @@ const ScienceChapters = () => {
 
                 <div className="space-y-2">
                     <h1 className="text-3xl font-bold text-foreground">
-                        Science Lessons
+                        {t("Science Lessons")}
                     </h1>
                     <p className="text-muted-foreground max-w-md mx-auto">
-                        Class 5 • NCERT | Learn with Cards
+                        {t("Class 5 • NCERT | Learn with Cards")}
                     </p>
                 </div>
             </div>
@@ -74,7 +74,7 @@ const ScienceChapters = () => {
                                     {language === "hi" ? chapter.titleHindi : chapter.title}
                                 </h2>
                                 <p className="text-sm text-muted-foreground">
-                                    {chapter.lessons.length} {chapter.lessons.length === 1 ? "Lesson" : "Lessons"}
+                                    {chapter.lessons.length} {chapter.lessons.length === 1 ? t("Lesson") : t("Lessons")}
                                 </p>
                             </div>
                         </div>
@@ -109,7 +109,7 @@ const ScienceChapters = () => {
                                             {/* Lesson Metadata */}
                                             <div className="flex flex-wrap items-center gap-2">
                                                 <Badge className={getDifficultyColor(lesson.difficulty)}>
-                                                    {lesson.difficulty}
+                                                    {t(lesson.difficulty)}
                                                 </Badge>
                                                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                                     <Clock className="w-3 h-3" />
@@ -117,7 +117,7 @@ const ScienceChapters = () => {
                                                 </div>
                                                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                                     <BookOpen className="w-3 h-3" />
-                                                    <span>{lesson.cards.length} cards</span>
+                                                    <span>{lesson.cards.length} {t("cards")}</span>
                                                 </div>
                                             </div>
                                         </div>
