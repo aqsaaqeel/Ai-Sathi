@@ -5,9 +5,11 @@ import { Calculator, Book, Globe, Wifi, WifiOff, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import LanguageSelector from "@/components/LanguageSelector";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Subjects = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {
@@ -100,12 +102,12 @@ const Subjects = () => {
           {isOnline ? (
             <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted px-3 py-1.5 rounded-full">
               <Wifi className="w-3 h-3" />
-              Online
+              {t("Online")}
             </div>
           ) : (
             <div className="flex items-center gap-2 text-xs text-success bg-success/10 px-3 py-1.5 rounded-full">
               <WifiOff className="w-3 h-3" />
-              Offline Mode Active ✨
+              {t("Offline Mode Active ✨")}
             </div>
           )}
         </div>
@@ -137,15 +139,15 @@ const Subjects = () => {
       {/* Quick Start CTA */}
       <div className="px-6 pb-12">
         <div className="p-6 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-3xl border border-primary/20 space-y-4">
-          <h3 className="font-semibold text-foreground">Ready to Learn?</h3>
+          <h3 className="font-semibold text-foreground">{t("Ready to Learn?")}</h3>
           <p className="text-sm text-muted-foreground">
-            Start with Grade 5 Maths and ask me anything! I'll explain step-by-step in simple language.
+            {t("Start with Grade 5 Maths and ask me anything! I'll explain step-by-step in simple language.")}
           </p>
           <Button
             onClick={() => navigate("/chat")}
             className="w-full rounded-2xl h-12 bg-gradient-to-r from-primary to-secondary hover:shadow-lg transition-all"
           >
-            Start Learning Now →
+            {t("Start Learning Now →")}
           </Button>
         </div>
       </div>
@@ -153,7 +155,7 @@ const Subjects = () => {
       {/* Info Footer */}
       <div className="px-6 pb-8 text-center">
         <p className="text-xs text-muted-foreground">
-          Works completely offline • NCERT aligned • Free forever
+          {t("Works completely offline • NCERT aligned • Free forever")}
         </p>
       </div>
     </div>

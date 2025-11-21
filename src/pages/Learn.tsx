@@ -30,7 +30,7 @@ export default function Learn() {
   const navigate = useNavigate();
   const location = useLocation();
   const { play, isPlaying } = useAudioPlayer();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   
   // Get subject, chapter, lesson from state or params
   const locationState = location.state as { 
@@ -68,7 +68,7 @@ export default function Learn() {
   if (!lesson) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p>Loading lesson...</p>
+        <p>{t("Loading lesson...")}</p>
       </div>
     );
   }
@@ -104,7 +104,7 @@ export default function Learn() {
   const handleNext = () => {
     if (currentCard.type === "practice" && !showFeedback) {
       // Must check answer first
-      toast.info("Please check your answer first!");
+      toast.info(t("Please check your answer first!"));
       return;
     }
 
@@ -135,7 +135,7 @@ export default function Learn() {
 
   const handleAskQuestion = async () => {
     if (!studentQuestion.trim()) {
-      toast.error(language === "hi" ? "कृपया एक प्रश्न लिखें" : language === "kn" ? "ದಯವಿಟ್ಟು ಒಂದು ಪ್ರಶ್ನೆ ಬರೆಯಿರಿ" : "Please enter a question");
+      toast.error(t("Please enter a question"));
       return;
     }
 
@@ -148,7 +148,7 @@ export default function Learn() {
       );
       setQuestionAnswer(answer);
     } catch (error) {
-      toast.error(language === "hi" ? "उत्तर प्राप्त करने में त्रुटि" : language === "kn" ? "ಉತ್ತರ ಪಡೆಯುವಲ್ಲಿ ದೋಷ" : "Error getting answer");
+      toast.error(t("Error getting answer"));
       setQuestionAnswer("");
     } finally {
       setIsAnswering(false);
@@ -248,7 +248,7 @@ export default function Learn() {
           <div className="flex items-center gap-2 mb-4">
             <span className="text-3xl">{getCardIcon(currentCard.type)}</span>
             <span className="text-xs font-semibold uppercase text-gray-600">
-              {currentCard.type}
+              {t(currentCard.type)}
             </span>
           </div>
 
@@ -340,8 +340,8 @@ export default function Learn() {
                 <div>
                   <p className="font-semibold mb-1">
                     {selectedAnswer === currentCard.correctAnswer 
-                      ? (language === "hi" ? "सही! 🎉" : language === "kn" ? "ಸರಿ! 🎉" : "Correct! 🎉")
-                      : (language === "hi" ? "फिर कोशिश करें 😔" : language === "kn" ? "ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ 😔" : "Not quite 😔")}
+                      ? t("Correct! 🎉")
+                      : t("Not quite 😔")}
                   </p>
                   <p className="text-sm">
                     {getLocalizedText(currentCard.explanation, currentCard.explanationHindi, currentCard.explanationKannada, language)}
@@ -358,11 +358,7 @@ export default function Learn() {
             className="w-full border-2 border-blue-200 hover:border-blue-400 hover:bg-blue-50 transition-all"
           >
             <MessageCircle className="h-4 w-4 mr-2" />
-            {language === "hi" 
-              ? "इस विषय पर और जानें 💬" 
-              : language === "kn" 
-              ? "ಈ ವಿಷಯದ ಬಗ್ಗೆ ಇನ್ನಷ್ಟು ತಿಳಿಯಿರಿ 💬"
-              : "Learn More About This 💬"}
+            {t("Learn More About This 💬")}
           </Button>
         </Card>
 
@@ -375,7 +371,7 @@ export default function Learn() {
             className="flex-1"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            {language === "hi" ? "पिछला" : language === "kn" ? "ಹಿಂದಿನ" : "Previous"}
+            {t("Previous")}
           </Button>
 
           {currentCard.type === "practice" && !showFeedback ? (
@@ -384,18 +380,18 @@ export default function Learn() {
               disabled={!selectedAnswer}
               className="flex-1"
             >
-              {language === "hi" ? "जवाब जांचें" : language === "kn" ? "ಉತ್ತರ ಪರೀಕ್ಷಿಸಿ" : "Check Answer"}
+              {t("Check Answer")}
             </Button>
           ) : (
             <Button onClick={handleNext} className="flex-1">
               {isLastCard ? (
                 <>
                   <Trophy className="h-4 w-4 mr-2" />
-                  {language === "hi" ? "पाठ पूरा करें" : language === "kn" ? "ಪಾಠ ಮುಗಿಸಿ" : "Finish Lesson"}
+                  {t("Finish Lesson")}
                 </>
               ) : (
                 <>
-                  {language === "hi" ? "अगला" : language === "kn" ? "ಮುಂದಿನ" : "Next"}
+                  {t("Next")}
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </>
               )}
@@ -417,18 +413,10 @@ export default function Learn() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {language === "hi" 
-                ? "कोई प्रश्न पूछें 💭" 
-                : language === "kn" 
-                ? "ಪ್ರಶ್ನೆ ಕೇಳಿ 💭" 
-                : "Ask a Question 💭"}
+              {t("Ask a Question 💭")}
             </DialogTitle>
             <DialogDescription>
-              {language === "hi"
-                ? "अपना सवाल पूछें और AI शिक्षक से उत्तर पाएं!"
-                : language === "kn"
-                ? "ನಿಮ್ಮ ಪ್ರಶ್ನೆ ಕೇಳಿ ಮತ್ತು AI ಶಿಕ್ಷಕರಿಂದ ಉತ್ತರ ಪಡೆಯಿರಿ!"
-                : "Ask your question and get an answer from the AI teacher!"}
+              {t("Ask your question and get an answer from the AI teacher!")}
             </DialogDescription>
           </DialogHeader>
 
@@ -436,13 +424,7 @@ export default function Learn() {
             {!questionAnswer ? (
               <>
                 <Textarea
-                  placeholder={
-                    language === "hi"
-                      ? "यहाँ अपना सवाल लिखें..."
-                      : language === "kn"
-                      ? "ನಿಮ್ಮ ಪ್ರಶ್ನೆಯನ್ನು ಇಲ್ಲಿ ಬರೆಯಿರಿ..."
-                      : "Type your question here..."
-                  }
+                  placeholder={t("Type your question here...")}
                   value={studentQuestion}
                   onChange={(e) => setStudentQuestion(e.target.value)}
                   rows={4}
@@ -456,15 +438,11 @@ export default function Learn() {
                   {isAnswering ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      {language === "hi" 
-                        ? "जवाब खोज रहे हैं..." 
-                        : language === "kn"
-                        ? "ಉತ್ತರ ಹುಡುಕುತ್ತಿದ್ದೇವೆ..."
-                        : "Finding answer..."}
+                      {t("Finding answer...")}
                     </>
                   ) : (
                     <>
-                      {language === "hi" ? "जवाब पाएं" : language === "kn" ? "ಉತ್ತರ ಪಡೆಯಿರಿ" : "Get Answer"}
+                      {t("Get Answer")}
                     </>
                   )}
                 </Button>
@@ -473,14 +451,14 @@ export default function Learn() {
               <>
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                   <p className="font-semibold mb-2 text-blue-900">
-                    {language === "hi" ? "आपका प्रश्न:" : language === "kn" ? "ನಿಮ್ಮ ಪ್ರಶ್ನೆ:" : "Your Question:"}
+                    {t("Your Question:")}
                   </p>
                   <p className="text-gray-700 italic">{studentQuestion}</p>
                 </div>
                 
                 <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                   <p className="font-semibold mb-2 text-green-900">
-                    {language === "hi" ? "उत्तर:" : language === "kn" ? "ಉತ್ತರ:" : "Answer:"}
+                    {t("Answer:")}
                   </p>
                   <p className="text-gray-700 whitespace-pre-wrap">{questionAnswer}</p>
                 </div>
@@ -490,7 +468,7 @@ export default function Learn() {
                   variant="outline"
                   className="w-full"
                 >
-                  {language === "hi" ? "बंद करें" : language === "kn" ? "ಮುಚ್ಚಿ" : "Close"}
+                  {t("Close")}
                 </Button>
               </>
             )}

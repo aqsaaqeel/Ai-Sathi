@@ -81,13 +81,13 @@ const MathsChapters = () => {
                                             <p className="text-sm text-gray-600">{lesson.description}</p>
                                             <div className="flex items-center gap-3 mt-1">
                                                 <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
-                                                    {lesson.difficulty}
+                                                    {t(lesson.difficulty)}
                                                 </span>
                                                 <span className="text-xs text-gray-500">
                                                     ⏱️ {lesson.duration}
                                                 </span>
                                                 <span className="text-xs text-gray-500">
-                                                    📝 {lesson.cards.length} cards
+                                                    📝 {lesson.cards.length} {t("cards")}
                                                 </span>
                                             </div>
                                         </div>
