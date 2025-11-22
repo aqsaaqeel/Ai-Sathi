@@ -8,11 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, Lock, CheckCircle2, Play } from 'lucide-react';
-import { englishLessons, type EnglishLesson } from '@/data/languageLearning/englishCourse';
+import { englishLessonsNew, type EnglishLesson } from '@/data/languageLearning/englishAlphabet';
 
 export default function EnglishCourse() {
     const navigate = useNavigate();
-    const [lessons, setLessons] = useState<EnglishLesson[]>(englishLessons);
+    const [lessons, setLessons] = useState<EnglishLesson[]>(englishLessonsNew);
     const [completedLessons, setCompletedLessons] = useState<string[]>([]);
 
     useEffect(() => {
@@ -23,6 +23,8 @@ export default function EnglishCourse() {
         if (demoMode) {
             setLessons(lessons.map(l => ({ ...l, unlocked: true })));
         } else {
+            // Unlock first lesson by default
+            // Unlock next lesson if previous is completed
             const updatedLessons = lessons.map((lesson, index) => {
                 if (index === 0) return { ...lesson, unlocked: true };
                 const previousCompleted = completed.includes(lessons[index - 1].id);
@@ -31,6 +33,11 @@ export default function EnglishCourse() {
             setLessons(updatedLessons);
         }
     }, []);
+
+    const handleLessonClick = (lesson: EnglishLesson) => {
+        if (!lesson.unlocked) return;
+        navigate(`/language-learning/english-lesson/${lesson.id}`);
+    };
 
     const getProgress = () => {
         return (completedLessons.length / lessons.length) * 100;
@@ -73,33 +80,24 @@ export default function EnglishCourse() {
             <div className="px-6 pb-12 space-y-4">
                 {lessons.map((lesson, index) => {
                     const isCompleted = completedLessons.includes(lesson.id);
-                    const isLocked = !lesson.unlocked;
+                    // Add unlocked property to type if missing, or cast
+                    const isLocked = !(lesson as any).unlocked;
 
                     return (
                         <Card
                             key={lesson.id}
                             className={`p-6 transition-all ${isLocked
-                                    ? 'opacity-50 cursor-not-allowed'
-                                    : 'cursor-pointer hover:shadow-lg'
+                                ? 'opacity-50 cursor-not-allowed'
+                                : 'cursor-pointer hover:shadow-lg'
                                 }`}
-                            onClick={() => {
-                                if (!isLocked) {
-                                    // For now, just mark as completed
-                                    const completed = JSON.parse(localStorage.getItem('englishCompletedLessons') || '[]');
-                                    if (!completed.includes(lesson.id)) {
-                                        completed.push(lesson.id);
-                                        localStorage.setItem('englishCompletedLessons', JSON.stringify(completed));
-                                        setCompletedLessons(completed);
-                                    }
-                                }
-                            }}
+                            onClick={() => handleLessonClick(lesson)}
                         >
                             <div className="flex items-center gap-4">
                                 <div className={`w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 ${isCompleted
-                                        ? 'bg-green-100'
-                                        : isLocked
-                                            ? 'bg-gray-100'
-                                            : 'bg-gradient-to-br from-blue-500 to-cyan-500'
+                                    ? 'bg-green-100'
+                                    : isLocked
+                                        ? 'bg-gray-100'
+                                        : 'bg-gradient-to-br from-blue-500 to-cyan-500'
                                     }`}>
                                     {isCompleted ? (
                                         <CheckCircle2 className="w-8 h-8 text-green-600" />
@@ -113,7 +111,7 @@ export default function EnglishCourse() {
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-1">
                                         <span className="text-xs font-semibold text-muted-foreground">
-                                            Level {lesson.level}
+                                            Lesson {index + 1}
                                         </span>
                                         {isCompleted && (
                                             <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
@@ -128,24 +126,13 @@ export default function EnglishCourse() {
                                         {lesson.titleHindi}
                                     </p>
                                     <p className="text-xs text-muted-foreground mt-2">
-                                        {lesson.type === 'alphabet' ? 'Alphabet Learning' :
-                                            lesson.type === 'words' ? 'Vocabulary' :
-                                                lesson.type === 'phonics' ? 'Phonics Practice' : 'Sentences'}
+                                        {lesson.description}
                                     </p>
                                 </div>
                             </div>
                         </Card>
                     );
                 })}
-            </div>
-
-            {/* Coming Soon Notice */}
-            <div className="px-6 pb-12">
-                <Card className="p-6 bg-blue-50 text-center">
-                    <p className="text-sm text-muted-foreground">
-                        📚 Full interactive lessons coming soon! For now, tap lessons to mark as complete.
-                    </p>
-                </Card>
             </div>
         </div>
     );

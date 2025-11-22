@@ -12,8 +12,8 @@ import { BookOpen, Lock } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 interface ClassOption {
-  id: number;
-  enabled: boolean;
+    id: number;
+    enabled: boolean;
 }
 
 const ClassSelection = () => {
@@ -31,10 +31,10 @@ const ClassSelection = () => {
 
     const handleClassSelect = (classNum: number, enabled: boolean) => {
         if (!enabled) return;
-        
+
         // Save selected class
         localStorage.setItem("selectedClass", classNum.toString());
-        
+
         // Navigate to subjects
         navigate("/subjects");
     };
@@ -71,6 +71,21 @@ const ClassSelection = () => {
                 hi: "वर्तमान में केवल कक्षा 5 उपलब्ध है। अधिक कक्षाएं जल्द ही आ रही हैं!",
                 kn: "ಪ್ರಸ್ತುತ ತರಗತಿ 5 ಮಾತ್ರ ಲಭ್ಯವಿದೆ. ಹೆಚ್ಚಿನ ತರಗತಿಗಳು ಶೀಘ್ರದಲ್ಲಿ ಬರಲಿವೆ!",
             },
+            languageCourse: {
+                en: "Language Literacy Course",
+                hi: "भाषा साक्षरता पाठ्यक्रम",
+                kn: "ಭಾಷಾ ಸಾಕ್ಷರತಾ ಕೋರ್ಸ್",
+            },
+            languageDesc: {
+                en: "Learn Hindi, English, Kannada basics",
+                hi: "हिंदी, अंग्रेजी, कन्नड़ मूल बातें सीखें",
+                kn: "ಹಿಂದಿ, ಇಂಗ್ಲಿಷ್, ಕನ್ನಡ ಮೂಲಗಳನ್ನು ಕಲಿಯಿರಿ",
+            },
+            new: {
+                en: "New",
+                hi: "नया",
+                kn: "ಹೊಸ",
+            },
         };
 
         return translations[key]?.[language] || translations[key]?.en || "";
@@ -98,16 +113,40 @@ const ClassSelection = () => {
                     </p>
                 </div>
 
+                {/* Language Learning Button */}
+                <div className="max-w-2xl mx-auto mb-8">
+                    <Card
+                        className="p-6 cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all border-2 border-orange-200 bg-gradient-to-r from-orange-50 to-amber-50 flex items-center gap-6"
+                        onClick={() => navigate("/language-learning")}
+                    >
+                        <div className="h-16 w-16 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+                            <BookOpen className="w-8 h-8 text-orange-600" />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-bold text-orange-900 mb-1">
+                                {getText("languageCourse")}
+                            </h3>
+                            <p className="text-orange-700/80">
+                                {getText("languageDesc")}
+                            </p>
+                        </div>
+                        <div className="ml-auto">
+                            <Badge className="bg-orange-200 text-orange-800 hover:bg-orange-200">
+                                {getText("new")}
+                            </Badge>
+                        </div>
+                    </Card>
+                </div>
+
                 {/* Class Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
                     {classes.map((classOption) => (
                         <Card
                             key={classOption.id}
-                            className={`relative p-6 transition-all cursor-pointer ${
-                                classOption.enabled
+                            className={`relative p-6 transition-all cursor-pointer ${classOption.enabled
                                     ? "hover:shadow-lg hover:scale-105 border-2 border-blue-200 bg-white"
                                     : "opacity-50 cursor-not-allowed bg-gray-50 border border-gray-200"
-                            }`}
+                                }`}
                             onClick={() => handleClassSelect(classOption.id, classOption.enabled)}
                         >
                             {/* Lock Icon for Disabled */}
@@ -120,20 +159,18 @@ const ClassSelection = () => {
                             {/* Class Number */}
                             <div className="text-center mb-3">
                                 <div
-                                    className={`text-5xl font-bold mb-2 ${
-                                        classOption.enabled
+                                    className={`text-5xl font-bold mb-2 ${classOption.enabled
                                             ? "text-blue-600"
                                             : "text-gray-400"
-                                    }`}
+                                        }`}
                                 >
                                     {classOption.id}
                                 </div>
                                 <p
-                                    className={`text-sm font-semibold ${
-                                        classOption.enabled
+                                    className={`text-sm font-semibold ${classOption.enabled
                                             ? "text-gray-700"
                                             : "text-gray-400"
-                                    }`}
+                                        }`}
                                 >
                                     {getText("class")} {classOption.id}
                                 </p>

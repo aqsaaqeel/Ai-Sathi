@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { SubjectCard } from "@/components/SubjectCard";
-import { Calculator, Book, Globe, Wifi, WifiOff, ArrowLeft } from "lucide-react";
+import { Calculator, Globe, Wifi, WifiOff, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import LanguageSelector from "@/components/LanguageSelector";
@@ -52,13 +52,6 @@ const Subjects = () => {
       icon: Globe,
       color: "accent" as const,
       route: "/science-chapters",
-    },
-    {
-      title: "Language Learning",
-      description: "Learn Hindi, English, Kannada",
-      icon: Book,
-      color: "learning" as const,
-      route: "/language-learning",
     },
   ];
 

@@ -23,6 +23,7 @@ import HindiLessonView from "./pages/LanguageLearning/HindiLessonView";
 import HindiAlphabetCourse from "./pages/LanguageLearning/HindiAlphabetCourse";
 import HindiAlphabetLessonView from "./pages/LanguageLearning/HindiAlphabetLessonView";
 import EnglishCourse from "./pages/LanguageLearning/EnglishCourse";
+import EnglishLessonView from "./pages/LanguageLearning/EnglishLessonView";
 import PictureDictionary from "./pages/LanguageLearning/PictureDictionary";
 import StoryMode from "./pages/LanguageLearning/StoryMode";
 import MultiStudentManager from "./pages/LanguageLearning/MultiStudentManager";
@@ -84,6 +85,7 @@ const App = () => (
             <Route path="/language-learning/hindi-course" element={<HindiCourse />} />
             <Route path="/language-learning/hindi-lesson/:lessonId" element={<HindiLessonView />} />
             <Route path="/language-learning/english-course" element={<EnglishCourse />} />
+            <Route path="/language-learning/english-lesson/:lessonId" element={<EnglishLessonView />} />
             <Route path="/language-learning/picture-dictionary" element={<PictureDictionary />} />
             <Route path="/language-learning/stories" element={<StoryMode />} />
             <Route path="/language-learning/story/:storyId" element={<StoryMode />} />

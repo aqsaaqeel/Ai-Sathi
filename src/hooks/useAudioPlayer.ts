@@ -22,29 +22,39 @@ function getIndianVoice(lang: string): SpeechSynthesisVoice | null {
 
   // For Hindi, prefer hi-IN voices
   if (lang === "hi-IN" || lang.startsWith("hi")) {
-    // Try to find Hindi Indian voice
-    const hindiVoice = voices.find(voice =>
-      voice.lang === "hi-IN" || voice.lang.startsWith("hi")
-    );
-    if (hindiVoice) return hindiVoice;
+    // Priority 1: Exact match for hi-IN
+    const exactMatch = voices.find(voice => voice.lang === "hi-IN");
+    if (exactMatch) return exactMatch;
+
+    // Priority 2: Any voice starting with hi-IN (e.g. hi-IN-Standard-A)
+    const partialMatch = voices.find(voice => voice.lang.startsWith("hi-IN"));
+    if (partialMatch) return partialMatch;
+
+    // Priority 3: Any Hindi voice
+    const anyHindi = voices.find(voice => voice.lang.startsWith("hi"));
+    if (anyHindi) return anyHindi;
   }
 
   // For Kannada
   if (lang === "kn-IN" || lang.startsWith("kn")) {
-    const kannadaVoice = voices.find(voice =>
-      voice.lang === "kn-IN" || voice.lang.startsWith("kn")
-    );
-    if (kannadaVoice) return kannadaVoice;
+    const exactMatch = voices.find(voice => voice.lang === "kn-IN");
+    if (exactMatch) return exactMatch;
+
+    const partialMatch = voices.find(voice => voice.lang.startsWith("kn-IN"));
+    if (partialMatch) return partialMatch;
+
+    const anyKannada = voices.find(voice => voice.lang.startsWith("kn"));
+    if (anyKannada) return anyKannada;
   }
 
   // For English, prefer Indian English (en-IN)
   if (lang === "en-US" || lang === "en-GB" || lang.startsWith("en")) {
     // Priority order: en-IN > en-GB > en-US
-    const indianEnglish = voices.find(voice => voice.lang === "en-IN");
+    const indianEnglish = voices.find(voice => voice.lang === "en-IN" || voice.lang.startsWith("en-IN"));
     if (indianEnglish) return indianEnglish;
 
     // Fallback to British English (closer to Indian accent than American)
-    const britishEnglish = voices.find(voice => voice.lang === "en-GB");
+    const britishEnglish = voices.find(voice => voice.lang === "en-GB" || voice.lang.startsWith("en-GB"));
     if (britishEnglish) return britishEnglish;
 
     // Last resort: any English voice
@@ -113,7 +123,7 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
       }
 
       utterance.lang = targetLang;
-      utterance.rate = 0.9; // Slightly slower for clarity
+      utterance.rate = 0.95; // Slightly slower for clarity
       utterance.pitch = 1.0;
 
       // Try to select an Indian accent voice

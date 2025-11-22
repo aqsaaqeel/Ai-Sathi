@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 
 interface UseTextToSpeechReturn {
     isSpeaking: boolean;
-    speak: (text: string) => void;
+    speak: (text: string, languageCode?: string) => void;
     stop: () => void;
     isSupported: boolean;
 }
@@ -25,7 +25,7 @@ export const useTextToSpeech = (language: string): UseTextToSpeechReturn => {
         setIsSupported('speechSynthesis' in window);
     }, []);
 
-    const speak = useCallback((text: string) => {
+    const speak = useCallback((text: string, languageCode?: string) => {
         if (!isSupported || !text) return;
 
         // Cancel any ongoing speech
@@ -33,22 +33,31 @@ export const useTextToSpeech = (language: string): UseTextToSpeechReturn => {
 
         const utterance = new SpeechSynthesisUtterance(text);
 
-        // Set language based on selected language
-        utterance.lang = getLanguageCode(language);
+        // Determine the language to use
+        // If languageCode is provided, use it directly. Otherwise, derive from hook's language prop.
+        const targetLang = languageCode || getLanguageCode(language);
+
+        // --- 1. SET THE LANGUAGE CODE ---
+        utterance.lang = targetLang;
 
         // Set voice properties
-        utterance.rate = 0.9; // Slightly slower for better comprehension
+        utterance.rate = 0.95; // Slightly slower for better comprehension
         utterance.pitch = 1.0;
         utterance.volume = 1.0;
 
-        // Try to find a voice that matches the language
+        // --- 2. SELECT THE SPECIFIC VOICE ---
         const voices = window.speechSynthesis.getVoices();
+
+        // Find the most appropriate native voice for the requested language code
+        // We prioritize a voice that starts with the target language code (e.g. 'hi-IN')
         const matchingVoice = voices.find(voice =>
-            voice.lang.startsWith(language === 'en' ? 'en' : language === 'hi' ? 'hi' : 'kn')
+            voice.lang.toLowerCase().startsWith(targetLang.toLowerCase())
         );
 
         if (matchingVoice) {
             utterance.voice = matchingVoice;
+        } else {
+            console.warn(`TTS: Native voice for ${targetLang} not found. Falling back.`);
         }
 
         // Event handlers
